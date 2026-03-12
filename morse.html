@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MORSE — Telegrafní Stanice</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080a06;
+  --panel: #0e1008;
+  --amber: #ffb800;
+  --amber-dim: #7a5500;
+  --amber-glow: rgba(255,184,0,0.15);
+  --red: #ff4422;
+  --red-dim: #7a2200;
+  --border: #2a2810;
+  --text: #e8d890;
+  --text-dim: #6a6030;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-image:
+    radial-gradient(ellipse at 30% 20%, rgba(255,184,0,0.04) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 80%, rgba(255,68,34,0.03) 0%, transparent 50%),
+    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,184,0,0.012) 2px, rgba(255,184,0,0.012) 4px);
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, rgba(0,0,0,0.07) 0px, rgba(0,0,0,0.07) 1px, transparent 1px, transparent 3px);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+header {
+  text-align: center;
+  margin-bottom: 28px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--border);
+  width: 100%;
+  max-width: 900px;
+}
+
+header h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: clamp(1.6rem, 5vw, 2.8rem);
+  font-weight: 900;
+  color: var(--amber);
+  text-shadow: 0 0 20px var(--amber), 0 0 50px rgba(255,184,0,0.3);
+  letter-spacing: 0.35em;
+  animation: flicker 10s infinite;
+}
+
+header .subtitle { color: var(--text-dim); font-size: 0.72rem; letter-spacing: 0.18em; margin-top: 6px; }
+
+@keyframes flicker {
+  0%,94%,100% { opacity:1; }
+  95% { opacity:0.8; }
+  97% { opacity:1; }
+  98.5% { opacity:0.88; }
+}
+
+.machine {
+  width: 100%;
+  max-width: 900px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 24px;
+  box-shadow: 0 0 50px rgba(255,184,0,0.04), inset 0 0 80px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.label {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.25em;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+  border-left: 2px solid var(--amber-dim);
+  padding-left: 8px;
+}
+
+/* SIGNAL VISUALIZER */
+.signal-section {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+}
+
+.signal-display {
+  background: #050604;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  height: 70px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+
+.signal-display::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent, transparent 49px, rgba(255,184,0,0.04) 49px, rgba(255,184,0,0.04) 50px),
+              repeating-linear-gradient(0deg, transparent, transparent 9px, rgba(255,184,0,0.04) 9px, rgba(255,184,0,0.04) 10px);
+}
+
+.signal-line {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(255,184,0,0.15);
+}
+
+.morse-display {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: clamp(0.9rem, 2vw, 1.3rem);
+  color: var(--amber);
+  text-shadow: 0 0 10px var(--amber);
+  letter-spacing: 0.2em;
+  word-break: break-all;
+  line-height: 1.8;
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.morse-char { display: inline-block; transition: all 0.15s; }
+.morse-char.active {
+  color: #fff;
+  text-shadow: 0 0 16px var(--amber), 0 0 32px rgba(255,184,0,0.6);
+  transform: scale(1.15);
+}
+
+/* SIGNAL DOT/DASH indicators */
+.signal-indicators {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+  align-items: center;
+}
+
+.sig-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: var(--amber-dim);
+  border: 1px solid var(--amber-dim);
+  transition: all 0.08s;
+}
+.sig-dash {
+  width: 36px; height: 12px;
+  border-radius: 2px;
+  background: var(--amber-dim);
+  border: 1px solid var(--amber-dim);
+  transition: all 0.08s;
+}
+.sig-dot.on, .sig-dash.on {
+  background: var(--amber);
+  box-shadow: 0 0 10px var(--amber), 0 0 20px rgba(255,184,0,0.4);
+}
+
+/* IO SECTION */
+.io-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 20px;
+}
+
+.io-block { display: flex; flex-direction: column; gap: 8px; }
+
+textarea, .output-box {
+  background: #060705;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  outline: none;
+  font-family: 'Share Tech Mono', monospace;
+  padding: 10px 12px;
+  resize: vertical;
+  line-height: 1.7;
+}
+
+textarea {
+  color: var(--amber);
+  font-size: 1rem;
+  min-height: 110px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+textarea:focus { border-color: var(--amber); box-shadow: 0 0 10px var(--amber-glow); }
+textarea::placeholder { color: var(--text-dim); }
+
+.output-box {
+  color: var(--red);
+  font-size: 0.9rem;
+  min-height: 110px;
+  letter-spacing: 0.15em;
+  border-color: var(--red-dim);
+  word-break: break-all;
+  white-space: pre-wrap;
+  text-shadow: 0 0 8px rgba(255,68,34,0.3);
+  user-select: all;
+  cursor: text;
+}
+
+/* REFERENCE TABLE */
+.ref-section { border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+
+.ref-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+  gap: 4px;
+}
+
+.ref-item {
+  background: #060705;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  padding: 5px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  cursor: pointer;
+  transition: all 0.12s;
+  user-select: none;
+}
+.ref-item:hover {
+  border-color: var(--amber-dim);
+  background: rgba(255,184,0,0.05);
+}
+.ref-item.highlight {
+  border-color: var(--amber);
+  background: var(--amber-glow);
+  box-shadow: 0 0 8px var(--amber-glow);
+}
+.ref-char {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--amber);
+}
+.ref-morse {
+  font-size: 0.65rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+/* CONTROLS */
+.controls-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 16px;
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--amber-dim);
+  color: var(--amber);
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  padding: 10px 18px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.btn:hover { background: var(--amber-glow); border-color: var(--amber); box-shadow: 0 0 12px var(--amber-glow); }
+.btn.primary { border-color: var(--amber); }
+.btn.red { border-color: var(--red-dim); color: var(--red); }
+.btn.red:hover { background: rgba(255,68,34,0.1); border-color: var(--red); }
+
+/* SPEED CONTROL */
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.speed-row span { font-size: 0.65rem; color: var(--text-dim); }
+.speed-row input[type=range] {
+  accent-color: var(--amber);
+  width: 120px;
+  cursor: pointer;
+}
+#speedVal { color: var(--amber); font-size: 0.7rem; min-width: 50px; }
+
+/* PLAY indicator */
+.play-indicator {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--red-dim);
+  border: 1px solid var(--red-dim);
+  transition: all 0.1s;
+  display: inline-block;
+}
+.play-indicator.active {
+  background: var(--red);
+  box-shadow: 0 0 8px var(--red), 0 0 16px rgba(255,68,34,0.4);
+  animation: blink 0.5s infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+/* STATUS */
+.status-bar {
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.status-bar span { color: var(--amber); }
+
+/* TABS */
+.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+.tab {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.58rem;
+  letter-spacing: 0.15em;
+  padding: 8px 16px;
+  cursor: pointer;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  text-transform: uppercase;
+}
+.tab:hover { color: var(--amber); }
+.tab.active { color: var(--amber); border-bottom-color: var(--amber); }
+
+@media (max-width: 600px) {
+  .io-grid { grid-template-columns: 1fr; }
+  .ref-grid { grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>— ··· — MORSE —</h1>
+  <div class="subtitle">TELEGRAFNÍ STANICE — CW TRANSCEIVER SIMULÁTOR — ITU STANDARD</div>
+</header>
+
+<div class="machine">
+
+  <!-- SIGNAL VISUALIZER -->
+  <div class="signal-section">
+    <div class="label">▸ Signál</div>
+    <div class="signal-display">
+      <div class="signal-line"></div>
+      <div class="morse-display" id="morseDisplay">
+        <span style="color:var(--text-dim);font-size:0.75rem;letter-spacing:0.1em;">Zadejte text pro zobrazení signálu...</span>
+      </div>
+    </div>
+    <div class="signal-indicators" style="margin-top:10px;">
+      <div class="sig-dot" id="sigDot"></div>
+      <div class="sig-dash" id="sigDash"></div>
+      <span style="font-size:0.62rem;color:var(--text-dim);margin-left:6px;" id="sigLabel">—</span>
+      <div class="play-indicator" id="playInd" style="margin-left:auto;"></div>
+      <span style="font-size:0.6rem;color:var(--text-dim);" id="playLabel">STANDBY</span>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" id="tabTextToMorse" onclick="switchTab('textToMorse')">Text → Morse</div>
+    <div class="tab" id="tabMorseToText" onclick="switchTab('morseToText')">Morse → Text</div>
+  </div>
+
+  <!-- IO -->
+  <div class="io-grid">
+    <div class="io-block">
+      <div class="label" id="labelIn">▸ Vstupní text</div>
+      <textarea id="inputArea" placeholder="Napište text zde..." oninput="onInput()" rows="5"></textarea>
+    </div>
+    <div class="io-block">
+      <div class="label" id="labelOut">▸ Morseova abeceda</div>
+      <div class="output-box" id="outputBox"></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-row">
+    <button class="btn primary" onclick="playMorse()">▶ PŘEHRÁT SIGNÁL</button>
+    <button class="btn" onclick="stopMorse()">■ STOP</button>
+    <button class="btn" onclick="copyOutput()">⎘ KOPÍROVAT</button>
+    <button class="btn red" onclick="clearAll()">✕ VYMAZAT</button>
+    <div class="speed-row">
+      <span>RYCHLOST:</span>
+      <input type="range" id="speedSlider" min="1" max="10" value="5" oninput="updateSpeed()">
+      <span id="speedVal">5 WPM</span>
+    </div>
+  </div>
+
+  <!-- REFERENCE TABLE -->
+  <div class="ref-section">
+    <div class="label">▸ Referenční tabulka — kliknutím vložíte znak</div>
+    <div class="ref-grid" id="refGrid"></div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div>ZNAKY: <span id="statChars">0</span></div>
+    <div>SLOVA: <span id="statWords">0</span></div>
+    <div>SIGNÁLŮ: <span id="statSignals">0</span></div>
+    <div>REŽIM: <span id="statMode">TEXT → MORSE</span></div>
+  </div>
+
+</div>
+
+<script>
+const MORSE_MAP = {
+  'A':'.-','B':'-...','C':'-.-.','D':'-..','E':'.','F':'..-.','G':'--.','H':'....','I':'..','J':'.---',
+  'K':'-.-','L':'.-..','M':'--','N':'-.','O':'---','P':'.--.','Q':'--.-','R':'.-.','S':'...','T':'-',
+  'U':'..-','V':'...-','W':'.--','X':'-..-','Y':'-.--','Z':'--..',
+  '0':'-----','1':'.----','2':'..---','3':'...--','4':'....-','5':'.....','6':'-....','7':'--...','8':'---..',
+  '9':'----.','.':'.-.-.-',',':'--..--','?':'..--..','!':'-.-.--','/':'-..-.','(':'-.--.',')':'-.--.-',
+  '&':'.-...','=':'-...-','+':'.-.-.', '-':'-....-','_':'..--.-','"':'.-..-.','$':'...-..-','@':'.--.-.',
+  ':':'---...', ';':'-.-.-.', '\'':'.----.',
+};
+const REVERSE_MAP = Object.fromEntries(Object.entries(MORSE_MAP).map(([k,v])=>[v,k]));
+
+let currentMode = 'textToMorse';
+let isPlaying = false;
+let playTimeout = null;
+let playtimeouts = [];
+let speed = 5;
+
+function getWpm() { return speed; }
+function getDotDuration() { return Math.round(1200 / getWpm()); }
+
+function textToMorse(text) {
+  const words = text.toUpperCase().trim().split(/\s+/);
+  return words.map(word => {
+    return word.split('').map(c => MORSE_MAP[c] || '').filter(v => v !== '').join(' / ');
+  }).filter(w => w !== '').join(' // ');
+}
+
+function morseToText(morse) {
+  // support both // and / as word separator, single / as letter separator
+  return morse.trim().split(/\s*\/\/\s*/).map(word =>
+    word.trim().split(/\s*\/\s*/).map(code =>
+      code.trim() ? (REVERSE_MAP[code.trim()] || '?') : ''
+    ).filter(c => c !== '').join('')
+  ).join(' ');
+}
+
+function onInput() {
+  const val = document.getElementById('inputArea').value;
+  let result = '';
+  if (currentMode === 'textToMorse') {
+    result = textToMorse(val);
+    updateSignalDisplay(result);
+  } else {
+    result = morseToText(val);
+  }
+  document.getElementById('outputBox').textContent = result;
+  updateStatus(val, result);
+}
+
+function updateSignalDisplay(morse) {
+  const disp = document.getElementById('morseDisplay');
+  if (!morse) {
+    disp.innerHTML = '<span style="color:var(--text-dim);font-size:0.75rem;letter-spacing:0.1em;">Zadejte text pro zobrazení signálu...</span>';
+    return;
+  }
+  disp.innerHTML = morse.split('').map((c,i) =>
+    `<span class="morse-char" id="mc${i}">${c === ' ' ? '&nbsp;' : c}</span>`
+  ).join('');
+}
+
+function updateStatus(input, output) {
+  const text = input.trim();
+  document.getElementById('statChars').textContent = text.replace(/ /g,'').length;
+  document.getElementById('statWords').textContent = text ? text.trim().split(/\s+/).length : 0;
+  document.getElementById('statSignals').textContent = output ? output.replace(/ /g,'').replace(/\//g,'').length : 0;
+}
+
+function updateSpeed() {
+  speed = parseInt(document.getElementById('speedSlider').value);
+  document.getElementById('speedVal').textContent = speed + ' WPM';
+}
+
+// MORSE AUDIO PLAYER
+let audioCtx = null;
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+
+function beep(start, duration, freq) {
+  const ctx = getAudioCtx();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.frequency.value = freq || 700;
+  osc.type = 'sine';
+  gain.gain.setValueAtTime(0, ctx.currentTime + start);
+  gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + start + 0.005);
+  gain.gain.setValueAtTime(0.4, ctx.currentTime + start + duration - 0.005);
+  gain.gain.linearRampToValueAtTime(0, ctx.currentTime + start + duration);
+  osc.start(ctx.currentTime + start);
+  osc.stop(ctx.currentTime + start + duration + 0.01);
+}
+
+function playMorse() {
+  stopMorse();
+  let morse = '';
+  if (currentMode === 'textToMorse') {
+    morse = document.getElementById('outputBox').textContent;
+  } else {
+    morse = document.getElementById('inputArea').value;
+  }
+  if (!morse) return;
+
+  isPlaying = true;
+  document.getElementById('playInd').classList.add('active');
+  document.getElementById('playLabel').textContent = 'VYSÍLÁM';
+
+  const dot = getDotDuration() / 1000;
+  const dash = dot * 3;
+  const gap = dot;
+  const charGap = dot * 3;
+  const wordGap = dot * 7;
+
+  let t = 0;
+  let charIdx = 0;
+  const chars = morse.split('');
+  const morseChars = document.querySelectorAll('.morse-char');
+
+  // collect signals with timing
+  const signals = [];
+  let dispIdx = 0;
+
+  const wordTokens = morse.split('//');
+  wordTokens.forEach((word, wi) => {
+    const letterTokens = word.trim().split('/');
+    letterTokens.forEach((letter, li) => {
+      letter.trim().split('').forEach(c => {
+        if (c === '.') {
+          signals.push({ t, dur: dot, type: 'dot', idx: dispIdx });
+          t += dot + gap; dispIdx++;
+        } else if (c === '-') {
+          signals.push({ t, dur: dash, type: 'dash', idx: dispIdx });
+          t += dash + gap; dispIdx++;
+        }
+      });
+      if (li < letterTokens.length - 1) { t += charGap - gap; dispIdx += 3; }
+    });
+    if (wi < wordTokens.length - 1) { t += wordGap - gap; dispIdx += 4; }
+  });
+
+  // schedule beeps and visual
+  signals.forEach(sig => {
+    const tid = setTimeout(() => {
+      if (!isPlaying) return;
+      beep(0, sig.dur, 700);
+      const dot = document.getElementById('sigDot');
+      const dash = document.getElementById('sigDash');
+      const lbl = document.getElementById('sigLabel');
+      if (sig.type === 'dot') { dot.classList.add('on'); dash.classList.remove('on'); lbl.textContent = '· DIT'; }
+      else { dash.classList.add('on'); dot.classList.remove('on'); lbl.textContent = '— DAH'; }
+      if (morseChars[sig.idx]) morseChars[sig.idx].classList.add('active');
+      const tid2 = setTimeout(() => {
+        dot.classList.remove('on');
+        dash.classList.remove('on');
+        if (morseChars[sig.idx]) morseChars[sig.idx].classList.remove('active');
+      }, sig.dur * 1000);
+      playTimeouts.push(tid2);
+    }, sig.t * 1000);
+    playTimeouts.push(tid);
+  });
+
+  // done
+  const doneTid = setTimeout(() => {
+    stopMorse();
+  }, (t + 0.5) * 1000);
+  playTimeouts.push(doneTid);
+}
+
+function stopMorse() {
+  isPlaying = false;
+  playTimeouts.forEach(clearTimeout);
+  playTimeouts = [];
+  document.getElementById('playInd').classList.remove('active');
+  document.getElementById('playLabel').textContent = 'STANDBY';
+  document.getElementById('sigDot').classList.remove('on');
+  document.getElementById('sigDash').classList.remove('on');
+  document.getElementById('sigLabel').textContent = '—';
+  document.querySelectorAll('.morse-char').forEach(el => el.classList.remove('active'));
+}
+
+function copyOutput() {
+  const text = document.getElementById('outputBox').textContent;
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✓ ZKOPÍROVÁNO';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function clearAll() {
+  stopMorse();
+  document.getElementById('inputArea').value = '';
+  document.getElementById('outputBox').textContent = '';
+  document.getElementById('morseDisplay').innerHTML = '<span style="color:var(--text-dim);font-size:0.75rem;letter-spacing:0.1em;">Zadejte text pro zobrazení signálu...</span>';
+  updateStatus('', '');
+}
+
+function switchTab(mode) {
+  currentMode = mode;
+  document.getElementById('tabTextToMorse').classList.toggle('active', mode === 'textToMorse');
+  document.getElementById('tabMorseToText').classList.toggle('active', mode === 'morseToText');
+  document.getElementById('statMode').textContent = mode === 'textToMorse' ? 'TEXT → MORSE' : 'MORSE → TEXT';
+
+  if (mode === 'textToMorse') {
+    document.getElementById('labelIn').textContent = '▸ Vstupní text';
+    document.getElementById('labelOut').textContent = '▸ Morseova abeceda';
+    document.getElementById('inputArea').placeholder = 'Napište text zde...';
+    document.getElementById('inputArea').style.textTransform = 'uppercase';
+  } else {
+    document.getElementById('labelIn').textContent = '▸ Morseova abeceda';
+    document.getElementById('labelOut').textContent = '▸ Dekódovaný text';
+    document.getElementById('inputArea').placeholder = '... / --- / ... // -.. . (/ mezi písmeny, // mezi slovy)';
+    document.getElementById('inputArea').style.textTransform = 'none';
+  }
+  clearAll();
+}
+
+function buildRefTable() {
+  const grid = document.getElementById('refGrid');
+  Object.entries(MORSE_MAP).forEach(([char, code]) => {
+    const item = document.createElement('div');
+    item.className = 'ref-item';
+    item.id = 'ref_' + char;
+    item.innerHTML = `<span class="ref-char">${char}</span><span class="ref-morse">${code}</span>`;
+    item.addEventListener('click', () => {
+      const inp = document.getElementById('inputArea');
+      if (currentMode === 'textToMorse') {
+        inp.value += char;
+      } else {
+        const cur = inp.value;
+        inp.value = cur + (cur && !cur.endsWith(' ') ? ' ' : '') + code;
+      }
+      onInput();
+      // highlight
+      item.classList.add('highlight');
+      setTimeout(() => item.classList.remove('highlight'), 300);
+    });
+    grid.appendChild(item);
+  });
+}
+
+// physical keyboard — highlight ref table
+document.addEventListener('keydown', e => {
+  const c = e.key.toUpperCase();
+  if (MORSE_MAP[c]) {
+    const ref = document.getElementById('ref_' + c);
+    if (ref) { ref.classList.add('highlight'); setTimeout(() => ref.classList.remove('highlight'), 200); }
+  }
+});
+
+buildRefTable();
+updateSpeed();
+</script>
+
+</body>
+</html>
