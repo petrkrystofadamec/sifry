@@ -1,0 +1,160 @@
+<!-- ENIGMA SIMULATOR - vložte celý tento kód do WordPress HTML bloku -->
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+
+<style>
+.enigma-wp{--bg:#0a0c08;--panel:#111408;--green:#4aff3a;--green-dim:#1a6614;--green-glow:rgba(74,255,58,0.15);--amber:#ffb800;--amber-dim:#7a5500;--border:#2a3520;--text:#c8e8c0;--text-dim:#4a6642;background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;padding:20px;border-radius:6px;position:relative;overflow:hidden;background-image:radial-gradient(ellipse at 50% 0%,rgba(74,255,58,0.05) 0%,transparent 60%),repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(74,255,58,0.015) 2px,rgba(74,255,58,0.015) 4px)}
+.enigma-wp *,.enigma-wp *::before,.enigma-wp *::after{box-sizing:border-box;margin:0;padding:0}
+.enigma-wp::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,0.08) 0px,rgba(0,0,0,0.08) 1px,transparent 1px,transparent 3px);pointer-events:none;z-index:10}
+.enigma-wp .ehdr{text-align:center;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.enigma-wp .ehdr h2{font-family:'Orbitron',sans-serif!important;font-size:clamp(1.4rem,4vw,2.2rem)!important;font-weight:900!important;color:var(--green)!important;text-shadow:0 0 20px var(--green),0 0 40px rgba(74,255,58,0.4);letter-spacing:0.3em;animation:efk 8s infinite;border:none!important;padding:0!important;margin:0!important;background:none!important}
+.enigma-wp .ehdr p{color:var(--text-dim);font-size:0.68rem;letter-spacing:0.12em;margin-top:5px}
+@keyframes efk{0%,96%,100%{opacity:1}97%{opacity:0.85}98%{opacity:1}99%{opacity:0.9}}
+.enigma-wp .emachine{display:flex;flex-direction:column;gap:16px;background:var(--panel);border:1px solid var(--border);border-radius:4px;padding:18px;box-shadow:0 0 40px rgba(74,255,58,0.05),inset 0 0 60px rgba(0,0,0,0.4)}
+.enigma-wp .elabel{font-family:'Orbitron',sans-serif;font-size:0.56rem;letter-spacing:0.22em;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px;border-left:2px solid var(--green-dim);padding-left:7px}
+.enigma-wp .esel-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.enigma-wp .esel-unit{display:flex;flex-direction:column;gap:4px}
+.enigma-wp .esel-unit span{font-size:0.52rem;color:var(--text-dim);font-family:'Orbitron',sans-serif;letter-spacing:0.12em;text-align:center;display:block}
+.enigma-wp .esel-unit select{background:#0c0e09;border:1px solid var(--border);color:var(--green);font-family:'Share Tech Mono',monospace;font-size:0.82rem;padding:5px;border-radius:2px;outline:none;cursor:pointer;width:100%}
+.enigma-wp .erotors-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.enigma-wp .erotor-unit{background:#0c0e09;border:1px solid var(--border);border-radius:3px;padding:10px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.enigma-wp .erotor-unit>span{font-family:'Orbitron',sans-serif;font-size:0.5rem;color:var(--text-dim);letter-spacing:0.18em}
+.enigma-wp .edisp{font-family:'Orbitron',sans-serif;font-size:1.7rem;font-weight:700;color:var(--amber);text-shadow:0 0 12px var(--amber),0 0 24px rgba(255,184,0,0.3);width:52px;height:52px;display:flex;align-items:center;justify-content:center;border:1px solid var(--amber-dim);background:rgba(255,184,0,0.05);border-radius:3px;transition:all 0.1s;user-select:none}
+.enigma-wp .edisp.etick{transform:translateY(-2px);text-shadow:0 0 20px var(--amber),0 0 40px rgba(255,184,0,0.6)}
+.enigma-wp .erctrls{display:flex;gap:5px}
+.enigma-wp .ebsm{background:transparent;border:1px solid var(--border);color:var(--text-dim);font-family:'Share Tech Mono',monospace;font-size:0.75rem;width:26px;height:26px;cursor:pointer;border-radius:2px;transition:all 0.15s;display:flex;align-items:center;justify-content:center}
+.enigma-wp .ebsm:hover{border-color:var(--green);color:var(--green);background:var(--green-glow)}
+.enigma-wp .ering-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.enigma-wp .ering-unit{display:flex;flex-direction:column;align-items:center;gap:3px}
+.enigma-wp .ering-unit>span{font-size:0.5rem;color:var(--text-dim);font-family:'Orbitron',sans-serif;letter-spacing:0.1em}
+.enigma-wp .ering-unit input[type=number]{width:100%;background:#0c0e09;border:1px solid var(--border);color:var(--green);font-family:'Share Tech Mono',monospace;font-size:0.9rem;padding:5px;text-align:center;border-radius:2px;outline:none}
+.enigma-wp .ering-unit input[type=number]:focus{border-color:var(--green);box-shadow:0 0 8px var(--green-glow)}
+.enigma-wp .eplug-section{border-top:1px solid var(--border);padding-top:12px}
+.enigma-wp .eplug-input{width:100%;background:#0c0e09;border:1px solid var(--border);color:var(--green);font-family:'Share Tech Mono',monospace;font-size:0.9rem;padding:8px 10px;border-radius:2px;outline:none;letter-spacing:0.12em;text-transform:uppercase}
+.enigma-wp .eplug-input:focus{border-color:var(--green);box-shadow:0 0 10px var(--green-glow)}
+.enigma-wp .eplug-hint{font-size:0.6rem;color:var(--text-dim);margin-top:3px}
+.enigma-wp .elamp-board{display:flex;flex-wrap:wrap;gap:4px;justify-content:center;padding:10px;background:#0a0c08;border:1px solid var(--border);border-radius:3px}
+.enigma-wp .elamp{width:29px;height:29px;border-radius:50%;border:1px solid var(--text-dim);display:flex;align-items:center;justify-content:center;font-size:0.62rem;font-family:'Orbitron',sans-serif;color:var(--text-dim);background:#0c0e09;transition:all 0.08s;user-select:none}
+.enigma-wp .elamp.elit{color:var(--amber);border-color:var(--amber);background:rgba(255,184,0,0.15);box-shadow:0 0 10px rgba(255,184,0,0.5),0 0 20px rgba(255,184,0,0.2);text-shadow:0 0 6px var(--amber)}
+.enigma-wp .ekb-section{border-top:1px solid var(--border);padding-top:12px}
+.enigma-wp .ekb-row{display:flex;gap:3px;justify-content:center;margin-bottom:4px}
+.enigma-wp .ekey{width:32px;height:32px;background:#0c0e09;border:1px solid var(--border);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:0.78rem;cursor:pointer;border-radius:3px;transition:all 0.08s;display:flex;align-items:center;justify-content:center;user-select:none;flex-shrink:0}
+.enigma-wp .ekey:hover{border-color:var(--green-dim);color:var(--green)}
+.enigma-wp .ekey.epressed,.enigma-wp .ekey:active{background:var(--green-glow);border-color:var(--green);color:var(--green);transform:translateY(1px);box-shadow:0 0 8px var(--green-glow)}
+.enigma-wp .eio-section{display:grid;grid-template-columns:1fr 1fr;gap:12px;border-top:1px solid var(--border);padding-top:14px}
+.enigma-wp .eio-block{display:flex;flex-direction:column;gap:5px}
+.enigma-wp .eta{background:#0c0e09;border:1px solid var(--border);color:var(--green);font-family:'Share Tech Mono',monospace;font-size:0.88rem;padding:8px 10px;border-radius:2px;outline:none;resize:vertical;min-height:85px;line-height:1.6;letter-spacing:0.08em;text-transform:uppercase;width:100%}
+.enigma-wp .eta:focus{border-color:var(--green);box-shadow:0 0 10px var(--green-glow)}
+.enigma-wp .eta[readonly]{color:var(--amber);border-color:var(--amber-dim);text-shadow:0 0 8px rgba(255,184,0,0.3);cursor:default}
+.enigma-wp .ectrls{display:flex;gap:7px;flex-wrap:wrap;border-top:1px solid var(--border);padding-top:12px}
+.enigma-wp .ebtn{background:transparent;border:1px solid var(--green-dim);color:var(--green);font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:0.1em;padding:8px 14px;cursor:pointer;border-radius:2px;transition:all 0.15s;text-transform:uppercase}
+.enigma-wp .ebtn:hover{background:var(--green-glow);border-color:var(--green);box-shadow:0 0 12px var(--green-glow)}
+.enigma-wp .ebtn.eprimary{border-color:var(--green);box-shadow:inset 0 0 12px rgba(74,255,58,0.08)}
+.enigma-wp .ebtn.edanger{border-color:#ff3a3a44;color:#ff6060}
+.enigma-wp .ebtn.edanger:hover{background:rgba(255,58,58,0.1);border-color:#ff6060}
+.enigma-wp .estatus{font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;padding:5px 0;border-top:1px solid var(--border);display:flex;gap:14px;flex-wrap:wrap}
+.enigma-wp .estatus span{color:var(--green)}
+@media(max-width:600px){.enigma-wp .eio-section{grid-template-columns:1fr}.enigma-wp .esel-row{grid-template-columns:repeat(2,1fr)}.enigma-wp .ekey{width:26px;height:26px;font-size:0.68rem}.enigma-wp .elamp{width:24px;height:24px;font-size:0.56rem}}
+</style>
+
+<div class="enigma-wp">
+  <div class="ehdr">
+    <h2>⬡ ENIGMA ⬡</h2>
+    <p>ŠIFROVACÍ STROJ — Wehrmacht / Luftwaffe typ I — simulátor</p>
+  </div>
+  <div class="emachine">
+    <div>
+      <div class="elabel">▸ Výběr rotorů</div>
+      <div class="esel-row">
+        <div class="esel-unit"><span>Rotor L</span>
+          <select id="ewRotorL"><option value="I">I</option><option value="II">II</option><option value="III">III</option><option value="IV">IV</option><option value="V">V</option></select>
+        </div>
+        <div class="esel-unit"><span>Rotor M</span>
+          <select id="ewRotorM"><option value="I">I</option><option value="II" selected>II</option><option value="III">III</option><option value="IV">IV</option><option value="V">V</option></select>
+        </div>
+        <div class="esel-unit"><span>Rotor R</span>
+          <select id="ewRotorR"><option value="I">I</option><option value="II">II</option><option value="III" selected>III</option><option value="IV">IV</option><option value="V">V</option></select>
+        </div>
+        <div class="esel-unit"><span>Reflektor</span>
+          <select id="ewRefl"><option value="B">UKW-B</option><option value="C">UKW-C</option></select>
+        </div>
+      </div>
+      <div class="elabel" style="margin-top:12px">▸ Počáteční pozice</div>
+      <div class="erotors-grid">
+        <div class="erotor-unit"><span>LEVÝ</span><div class="edisp" id="ewDL">A</div><div class="erctrls"><button class="ebsm" onclick="ewAdj('L',-1)">▼</button><button class="ebsm" onclick="ewAdj('L',1)">▲</button></div></div>
+        <div class="erotor-unit"><span>STŘEDNÍ</span><div class="edisp" id="ewDM">A</div><div class="erctrls"><button class="ebsm" onclick="ewAdj('M',-1)">▼</button><button class="ebsm" onclick="ewAdj('M',1)">▲</button></div></div>
+        <div class="erotor-unit"><span>PRAVÝ</span><div class="edisp" id="ewDR">A</div><div class="erctrls"><button class="ebsm" onclick="ewAdj('R',-1)">▼</button><button class="ebsm" onclick="ewAdj('R',1)">▲</button></div></div>
+      </div>
+      <div class="elabel" style="margin-top:12px">▸ Ringstellung</div>
+      <div class="ering-row">
+        <div class="ering-unit"><span>LEVÝ</span><input type="number" id="ewRL" min="1" max="26" value="1"></div>
+        <div class="ering-unit"><span>STŘEDNÍ</span><input type="number" id="ewRM" min="1" max="26" value="1"></div>
+        <div class="ering-unit"><span>PRAVÝ</span><input type="number" id="ewRR" min="1" max="26" value="1"></div>
+      </div>
+    </div>
+    <div class="eplug-section">
+      <div class="elabel">▸ Steckerbrett</div>
+      <input class="eplug-input" id="ewPlug" placeholder="AB CD EF GH IJ KL..." maxlength="60" spellcheck="false">
+      <div class="eplug-hint">Max 13 párů oddělených mezerami (např: AZ BT CS)</div>
+    </div>
+    <div>
+      <div class="elabel">▸ Světelná deska</div>
+      <div class="elamp-board" id="ewLamps"></div>
+    </div>
+    <div class="ekb-section">
+      <div class="elabel">▸ Klávesnice</div>
+      <div class="ekb-row" id="ewKb1"></div>
+      <div class="ekb-row" id="ewKb2"></div>
+      <div class="ekb-row" id="ewKb3"></div>
+    </div>
+    <div class="eio-section">
+      <div class="eio-block">
+        <div class="elabel">▸ Vstupní text</div>
+        <textarea class="eta" id="ewIn" placeholder="ZADEJTE TEXT..." spellcheck="false" rows="4"></textarea>
+      </div>
+      <div class="eio-block">
+        <div class="elabel">▸ Výstup (šifrovaný)</div>
+        <textarea class="eta" id="ewOut" readonly placeholder="VÝSTUP..." rows="4"></textarea>
+      </div>
+    </div>
+    <div class="ectrls">
+      <button class="ebtn eprimary" onclick="ewEncryptAll()">▶ ŠIFROVAT / DEŠIFROVAT</button>
+      <button class="ebtn" onclick="ewReset()">↺ RESET ROTORŮ</button>
+      <button class="ebtn edanger" onclick="ewClear()">✕ VYMAZAT</button>
+    </div>
+    <div class="estatus">
+      <div>ROTORY: <span id="ewSR">I-II-III</span></div>
+      <div>POZICE: <span id="ewSP">A-A-A</span></div>
+      <div>KROUŽKY: <span id="ewSK">1-1-1</span></div>
+      <div>ZÁSTRČKY: <span id="ewSZ">0</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+var EW_ROTORS={I:{w:'EKMFLGDQVZNTOWYHXUSPAIBRCJ',n:'Q'},II:{w:'AJDKSIRUXBLHWTMCQGZNPYFVOE',n:'E'},III:{w:'BDFHJLCPRTXVZNYEIWGAKMUSQO',n:'V'},IV:{w:'ESOVPZJAYQUIRHXLNFTGKDCMWB',n:'J'},V:{w:'VZBRGITYUPSDNHLXAWMJQOFECK',n:'Z'}};
+var EW_REFL={B:'YRUHQSLDPXNGOKMIEBFZCWVJAT',C:'FVPJIAOYEDRZXWGCTKUQSBNMHL'};
+var EW_A='ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+function ewMod(n,m){return((n%m)+m)%m;}
+function ewPlug(str){var p={},u={},pts=str.toUpperCase().replace(/[^A-Z ]/g,'').split(/\s+/).filter(function(x){return x.length===2;});for(var i=0;i<pts.length;i++){var a=pts[i][0],b=pts[i][1];if(a!==b&&!u[a]&&!u[b]){p[a]=b;p[b]=a;u[a]=u[b]=true;}}return p;}
+function ewPsub(c,p){return p[c]||c;}
+function ewFwd(c,w,pos,ring){var s=ewMod(pos-ring,26),idx=ewMod(EW_A.indexOf(c)+s,26),o=w[idx];return EW_A[ewMod(EW_A.indexOf(o)-s,26)];}
+function ewBwd(c,w,pos,ring){var s=ewMod(pos-ring,26),idx=ewMod(EW_A.indexOf(c)+s,26),f=EW_A[idx],v=EW_A[w.indexOf(f)];return EW_A[ewMod(EW_A.indexOf(v)-s,26)];}
+var ewPos=[0,0,0],ewInit=[0,0,0],ewLit=null;
+function ewCfg(){return{r:[document.getElementById('ewRotorL').value,document.getElementById('ewRotorM').value,document.getElementById('ewRotorR').value],rf:document.getElementById('ewRefl').value,rk:[parseInt(document.getElementById('ewRL').value)-1,parseInt(document.getElementById('ewRM').value)-1,parseInt(document.getElementById('ewRR').value)-1],p:ewPlug(document.getElementById('ewPlug').value)};}
+function ewEncChar(c,cfg,pos){var rR=EW_ROTORS[cfg.r[2]],rM=EW_ROTORS[cfg.r[1]],nR=EW_A[pos[2]]===rR.n,nM=EW_A[pos[1]]===rM.n;if(nM){pos[1]=ewMod(pos[1]+1,26);pos[0]=ewMod(pos[0]+1,26);}if(nR)pos[1]=ewMod(pos[1]+1,26);pos[2]=ewMod(pos[2]+1,26);var ch=ewPsub(c,cfg.p);ch=ewFwd(ch,EW_ROTORS[cfg.r[2]].w,pos[2],cfg.rk[2]);ch=ewFwd(ch,EW_ROTORS[cfg.r[1]].w,pos[1],cfg.rk[1]);ch=ewFwd(ch,EW_ROTORS[cfg.r[0]].w,pos[0],cfg.rk[0]);ch=EW_REFL[cfg.rf][EW_A.indexOf(ch)];ch=ewBwd(ch,EW_ROTORS[cfg.r[0]].w,pos[0],cfg.rk[0]);ch=ewBwd(ch,EW_ROTORS[cfg.r[1]].w,pos[1],cfg.rk[1]);ch=ewBwd(ch,EW_ROTORS[cfg.r[2]].w,pos[2],cfg.rk[2]);return ewPsub(ch,cfg.p);}
+function ewBuildLamps(){var b=document.getElementById('ewLamps');if(!b)return;b.innerHTML='';for(var i=0;i<EW_A.length;i++){var l=document.createElement('div');l.className='elamp';l.id='ewLamp'+EW_A[i];l.textContent=EW_A[i];b.appendChild(l);}}
+function ewBuildKb(){var rows=['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];rows.forEach(function(row,i){var el=document.getElementById('ewKb'+(i+1));if(!el)return;el.innerHTML='';for(var j=0;j<row.length;j++){(function(ch){var k=document.createElement('div');k.className='ekey';k.id='ewKey'+ch;k.textContent=ch;k.addEventListener('mousedown',function(){ewPress(ch);});k.addEventListener('touchstart',function(e){e.preventDefault();ewPress(ch);});el.appendChild(k);})(row[j]);}});}
+function ewLight(c){if(ewLit){var p=document.getElementById('ewLamp'+ewLit);if(p)p.classList.remove('elit');}ewLit=c;if(c){var el=document.getElementById('ewLamp'+c);if(el)el.classList.add('elit');}}
+function ewFlash(c){var el=document.getElementById('ewKey'+c);if(!el)return;el.classList.add('epressed');setTimeout(function(){el.classList.remove('epressed');},120);}
+function ewTick(){['L','M','R'].forEach(function(s,i){var el=document.getElementById('ewD'+s);if(!el)return;el.textContent=EW_A[ewPos[i]];el.classList.add('etick');setTimeout(function(){el.classList.remove('etick');},100);});}
+function ewStatus(){var c=ewCfg();var sr=document.getElementById('ewSR'),sp=document.getElementById('ewSP'),sk=document.getElementById('ewSK'),sz=document.getElementById('ewSZ');if(sr)sr.textContent=c.r.join('-');if(sp)sp.textContent=ewPos.map(function(p){return EW_A[p];}).join('-');if(sk)sk.textContent=c.rk.map(function(r){return r+1;}).join('-');if(sz)sz.textContent=Object.keys(c.p).length/2;}
+function ewPress(c){if(EW_A.indexOf(c)<0)return;var cfg=ewCfg(),out=ewEncChar(c,cfg,ewPos);ewLight(out);ewFlash(c);ewTick();ewStatus();var i=document.getElementById('ewIn'),o=document.getElementById('ewOut');if(i)i.value+=c;if(o)o.value+=out;setTimeout(function(){ewLight(null);},400);}
+window.ewAdj=function(s,d){var idx={L:0,M:1,R:2}[s];ewPos[idx]=ewMod(ewPos[idx]+d,26);ewInit[idx]=ewPos[idx];var el=document.getElementById('ewD'+s);if(el)el.textContent=EW_A[ewPos[idx]];ewStatus();};
+window.ewReset=function(){ewPos=ewInit.slice();ewTick();ewStatus();};
+window.ewEncryptAll=function(){var cfg=ewCfg(),pos=ewInit.slice(),i=document.getElementById('ewIn'),o=document.getElementById('ewOut');if(!i||!o)return;var t=i.value.toUpperCase().replace(/[^A-Z]/g,''),r='';for(var j=0;j<t.length;j++)r+=ewEncChar(t[j],cfg,pos);o.value=r;ewPos=pos.slice();ewTick();ewStatus();};
+window.ewClear=function(){var i=document.getElementById('ewIn'),o=document.getElementById('ewOut');if(i)i.value='';if(o)o.value='';ewLight(null);ewPos=ewInit.slice();ewTick();};
+document.querySelectorAll('#ewRotorL,#ewRotorM,#ewRotorR,#ewRefl,#ewRL,#ewRM,#ewRR').forEach(function(el){el.addEventListener('change',ewStatus);});
+ewBuildLamps();ewBuildKb();ewStatus();
+})();
+</script>
