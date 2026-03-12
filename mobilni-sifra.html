@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOBILNÍ ŠIFRA</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#06080a; --panel:#0a0d10; --green:#00ff88; --green-dim:#008844;
+  --green-glow:rgba(0,255,136,0.15); --border:#0a2818; --text:#d8f8e8; --text-dim:#5aaa80;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;
+  background-image:
+    radial-gradient(ellipse at 20% 10%,rgba(0,255,136,0.05) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 90%,rgba(0,200,100,0.03) 0%,transparent 50%);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.07) 0px,rgba(0,0,0,0.07) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;z-index:1000;
+}
+header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);width:100%;max-width:900px;}
+header h1{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:900;
+  color:var(--green);text-shadow:0 0 20px var(--green),0 0 50px rgba(0,255,136,0.3);
+  letter-spacing:0.3em;animation:flicker 9s infinite;
+}
+header .sub{color:var(--text-dim);font-size:0.7rem;letter-spacing:0.18em;margin-top:5px;}
+@keyframes flicker{0%,95%,100%{opacity:1}96%{opacity:0.82}97.5%{opacity:1}98.5%{opacity:0.9}}
+
+.machine{
+  width:100%;max-width:900px;background:var(--panel);
+  border:1px solid var(--border);border-radius:4px;padding:22px;
+  box-shadow:0 0 50px rgba(0,255,136,0.04),inset 0 0 80px rgba(0,0,0,0.5);
+  display:flex;flex-direction:column;gap:18px;
+}
+.lbl{
+  font-family:'Orbitron',sans-serif;font-size:0.56rem;letter-spacing:0.25em;
+  color:var(--text-dim);text-transform:uppercase;margin-bottom:9px;
+  border-left:2px solid var(--green-dim);padding-left:7px;
+}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:4px;}
+.tab{
+  font-family:'Orbitron',sans-serif;font-size:0.6rem;letter-spacing:0.15em;
+  padding:10px 20px;cursor:pointer;color:var(--text-dim);
+  border-bottom:2px solid transparent;transition:all 0.15s;text-transform:uppercase;
+}
+.tab:hover{color:var(--green);}
+.tab.active{color:var(--green);border-bottom-color:var(--green);}
+
+/* PHONE KEYPAD */
+.keypad-section{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0;}
+.keypad{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:360px;margin:0 auto;
+}
+.key{
+  background:#060a06;border:1px solid var(--border);border-radius:6px;
+  padding:10px 6px;cursor:pointer;transition:all 0.12s;
+  display:flex;flex-direction:column;align-items:center;gap:3px;
+  user-select:none;
+}
+.key:hover{border-color:var(--green-dim);background:rgba(0,255,136,0.05);}
+.key:active,.key.pressed{
+  border-color:var(--green);background:var(--green-glow);
+  box-shadow:0 0 18px var(--green-glow);transform:scale(0.96);
+}
+.key .num{
+  font-family:'Orbitron',sans-serif;font-size:1.2rem;font-weight:700;
+  color:var(--green);text-shadow:0 0 8px var(--green);line-height:1;
+}
+.key .letters{
+  font-family:'Share Tech Mono',monospace;font-size:0.65rem;
+  color:var(--text-dim);letter-spacing:0.12em;line-height:1;
+}
+/* 1 a 0 ztlumené jako speciální */
+.key.dim .num{color:#2a6040;text-shadow:none;}
+.key.dim .letters{color:#1a4030;}
+.key.dim{cursor:default;}
+.key.dim:hover{border-color:var(--border);background:#060a06;}
+
+/* IO */
+.io-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.io-block{display:flex;flex-direction:column;gap:6px;}
+textarea{
+  background:#040804;border:1px solid var(--border);color:var(--green);
+  font-family:'Share Tech Mono',monospace;font-size:0.95rem;
+  padding:9px 11px;border-radius:2px;outline:none;resize:vertical;
+  min-height:110px;line-height:1.7;width:100%;
+}
+textarea:focus{border-color:var(--green);box-shadow:0 0 10px var(--green-glow);}
+textarea::placeholder{color:var(--text-dim);}
+#encInputArea{text-transform:uppercase;}
+
+.output-box{
+  background:#040804;border:1px solid var(--green-dim);
+  color:var(--green);font-family:'Share Tech Mono',monospace;
+  font-size:1.05rem;padding:9px 11px;border-radius:2px;
+  min-height:110px;line-height:2;letter-spacing:0.15em;
+  word-break:break-all;white-space:pre-wrap;
+  text-shadow:0 0 8px rgba(0,255,136,0.2);user-select:all;
+}
+
+/* LEGENDA */
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;}
+.legend-item{
+  background:#040804;border:1px solid var(--border);border-radius:3px;
+  padding:5px 8px;display:flex;align-items:center;gap:8px;font-size:0.7rem;
+}
+.legend-key{font-family:'Orbitron',sans-serif;color:var(--green);font-size:0.75rem;min-width:16px;text-align:center;}
+.legend-letters{color:var(--text-dim);letter-spacing:0.1em;}
+.legend-example{color:#3a7055;font-size:0.6rem;margin-left:auto;}
+
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{
+  background:transparent;border:1px solid var(--green-dim);color:var(--green);
+  font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:0.14em;
+  padding:9px 16px;cursor:pointer;border-radius:2px;transition:all 0.15s;text-transform:uppercase;
+}
+.btn:hover{background:var(--green-glow);border-color:var(--green);box-shadow:0 0 12px var(--green-glow);}
+.btn.primary{border-color:var(--green);}
+.btn.success{border-color:#00cc66;color:#00ff88;}
+.btn.success:hover{background:rgba(0,255,136,0.08);border-color:#00ff88;}
+.btn.danger{border-color:rgba(255,60,60,0.3);color:#ff6060;}
+.btn.danger:hover{background:rgba(255,60,60,0.08);border-color:#ff6060;}
+
+.status-bar{
+  font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;
+  display:flex;gap:18px;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding-top:12px;
+}
+.status-bar span{color:var(--green);}
+@media(max-width:600px){.io-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📱 MOBILNÍ ŠIFRA</h1>
+  <div class="sub">MULTITAP — KLASICKÁ TLAČÍTKOVÁ KLÁVESNICE</div>
+</header>
+
+<div class="machine">
+
+  <!-- TABS -->
+  <div class="tabs">
+    <div class="tab active" id="tabEnc" onclick="switchMode('enc')">▶ ŠIFROVAT</div>
+    <div class="tab" id="tabDec" onclick="switchMode('dec')">◀ DEŠIFROVAT</div>
+  </div>
+
+  <!-- KEYPAD -->
+  <div class="keypad-section">
+    <div class="lbl">▸ Klávesnice — klikněte pro vložení písmene</div>
+    <div class="keypad" id="keypad"></div>
+  </div>
+
+  <!-- LEGENDA -->
+  <div>
+    <div class="lbl">▸ Legenda — počet stisků = písmeno</div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <!-- ENC MODE -->
+  <div id="encMode">
+    <div class="io-row">
+      <div class="io-block">
+        <div class="lbl">▸ Vstupní text</div>
+        <textarea id="encInputArea" placeholder="Napište text..." oninput="onEncode()" rows="5"></textarea>
+      </div>
+      <div class="io-block">
+        <div class="lbl">▸ Zašifrovaný kód</div>
+        <div class="output-box" id="encOutput"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DEC MODE -->
+  <div id="decMode" style="display:none">
+    <div class="io-row">
+      <div class="io-block">
+        <div class="lbl">▸ Kód (čísla oddělená mezerami)</div>
+        <textarea id="decInputArea" placeholder="Např: 2 44 666 5" oninput="onDecode()" rows="5"></textarea>
+      </div>
+      <div class="io-block">
+        <div class="lbl">▸ Dešifrovaný text</div>
+        <div class="output-box" id="decOutput"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-row">
+    <button class="btn success" onclick="copyOutput()">⎘ KOPÍROVAT VÝSTUP</button>
+    <button class="btn danger" onclick="clearAll()">✕ VYMAZAT</button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div>MÓD: <span id="statMode">ŠIFROVÁNÍ</span></div>
+    <div>ZNAKY: <span id="statChars">0</span></div>
+    <div>SKUPIN: <span id="statGroups">0</span></div>
+  </div>
+
+</div>
+
+<script>
+// =============================================
+// KLÁVESNICE
+// =============================================
+const KEYS = [
+  { num:'1', letters:[], dim:true,  special:'.,?!' },
+  { num:'2', letters:['A','B','C'] },
+  { num:'3', letters:['D','E','F'] },
+  { num:'4', letters:['G','H','I'] },
+  { num:'5', letters:['J','K','L'] },
+  { num:'6', letters:['M','N','O'] },
+  { num:'7', letters:['P','Q','R','S'] },
+  { num:'8', letters:['T','U','V'] },
+  { num:'9', letters:['W','X','Y','Z'] },
+  { num:'*', letters:[], dim:true,  special:'←' },
+  { num:'0', letters:[' '], dim:true, special:'MEZERA' },
+  { num:'#', letters:[], dim:true,  special:'↵' },
+];
+
+// Encode map: písmeno → {key, count}
+const LETTER_MAP = {};
+KEYS.forEach(k => {
+  k.letters.forEach((l, i) => {
+    LETTER_MAP[l] = { key: k.num, count: i+1 };
+  });
+});
+LETTER_MAP[' '] = { key:'0', count:1 };
+
+// Decode map: "222" → 'C'
+const CODE_MAP = {};
+KEYS.forEach(k => {
+  k.letters.forEach((l, i) => {
+    CODE_MAP[k.num.repeat(i+1)] = l;
+  });
+});
+CODE_MAP['0'] = ' ';
+
+let currentMode = 'enc';
+
+// =============================================
+// BUILD KEYPAD
+// =============================================
+function buildKeypad() {
+  const kp = document.getElementById('keypad');
+  kp.innerHTML = '';
+  KEYS.forEach(k => {
+    const btn = document.createElement('button');
+    const isDim = k.dim || false;
+    btn.className = 'key' + (isDim ? ' dim' : '');
+    btn.dataset.keynum = k.num;
+    btn.innerHTML = `
+      <div class="num">${k.num}</div>
+      <div class="letters">${k.letters.length ? k.letters.join(' ') : (k.special||'')}</div>
+    `;
+
+    if (k.letters.length > 0) {
+      btn.addEventListener('click', () => {
+        if (currentMode === 'enc') {
+          document.getElementById('encInputArea').value += k.letters[0];
+          onEncode();
+        } else {
+          // v dec modu vložíme kód prvního písmene
+          const inp = document.getElementById('decInputArea');
+          const code = k.num + ' ';
+          inp.value += code;
+          onDecode();
+        }
+        flashKey(k.num);
+      });
+    } else if (k.num === '*') {
+      btn.addEventListener('click', () => {
+        const inp = currentMode==='enc'
+          ? document.getElementById('encInputArea')
+          : document.getElementById('decInputArea');
+        inp.value = inp.value.slice(0,-1);
+        if (currentMode==='enc') onEncode(); else onDecode();
+      });
+    } else if (k.num === '0') {
+      btn.addEventListener('click', () => {
+        if (currentMode === 'enc') {
+          document.getElementById('encInputArea').value += ' ';
+          onEncode();
+        } else {
+          document.getElementById('decInputArea').value += '0 ';
+          onDecode();
+        }
+        flashKey('0');
+      });
+    }
+
+    kp.appendChild(btn);
+  });
+}
+
+function flashKey(keyNum) {
+  document.querySelectorAll('.key').forEach(btn => {
+    if (btn.dataset.keynum === keyNum) {
+      btn.classList.add('pressed');
+      setTimeout(() => btn.classList.remove('pressed'), 250);
+    }
+  });
+}
+
+// =============================================
+// LEGENDA
+// =============================================
+function buildLegend() {
+  const leg = document.getElementById('legend');
+  leg.innerHTML = '';
+  KEYS.filter(k => k.letters.length > 0 && k.num !== '0').forEach(k => {
+    const item = document.createElement('div');
+    item.className = 'legend-item';
+    const ex = k.letters.map((l,i) => `${k.num.repeat(i+1)}=${l}`).join('  ');
+    item.innerHTML = `
+      <span class="legend-key">${k.num}</span>
+      <span class="legend-letters">${k.letters.join(' ')}</span>
+      <span class="legend-example">${ex}</span>
+    `;
+    leg.appendChild(item);
+  });
+  // mezera
+  const sp = document.createElement('div');
+  sp.className = 'legend-item';
+  sp.innerHTML = `<span class="legend-key" style="color:var(--text-dim)">0</span><span class="legend-letters">MEZERA</span><span class="legend-example">0 = mezera</span>`;
+  leg.appendChild(sp);
+}
+
+// =============================================
+// ENCODE
+// =============================================
+function encode(text) {
+  const upper = text.toUpperCase();
+  const groups = [];
+  for (let i=0; i<upper.length; i++) {
+    const ch = upper[i];
+    if (ch === ' ') { groups.push('0'); continue; }
+    const e = LETTER_MAP[ch];
+    if (e) groups.push(e.key.repeat(e.count));
+  }
+  return groups.join(' ');
+}
+
+function onEncode() {
+  const val = document.getElementById('encInputArea').value;
+  const result = encode(val);
+  document.getElementById('encOutput').textContent = result;
+  document.getElementById('statChars').textContent = val.replace(/\s/g,'').length;
+  document.getElementById('statGroups').textContent = result.trim() ? result.trim().split(' ').length : 0;
+
+  // blikni klávesnici pro poslední znak
+  if (val.length > 0) {
+    const last = val[val.length-1].toUpperCase();
+    const e = last === ' ' ? {key:'0'} : LETTER_MAP[last];
+    if (e) flashKey(e.key);
+  }
+}
+
+// =============================================
+// DECODE
+// =============================================
+function decode(code) {
+  // rozděl podle mezer, každá skupina je kód
+  const groups = code.trim().split(/\s+/);
+  let result = '';
+  for (const g of groups) {
+    if (!g) continue;
+    const letter = CODE_MAP[g];
+    if (letter !== undefined) result += letter;
+    else result += '?'; // neznámý kód
+  }
+  return result;
+}
+
+function onDecode() {
+  const val = document.getElementById('decInputArea').value;
+  const result = decode(val);
+  document.getElementById('decOutput').textContent = result;
+  const groups = val.trim() ? val.trim().split(/\s+/).length : 0;
+  document.getElementById('statChars').textContent = result.replace(/\s/g,'').length;
+  document.getElementById('statGroups').textContent = groups;
+
+  // blikni klávesnici pro poslední skupinu
+  const parts = val.trimEnd().split(/\s+/);
+  if (parts.length > 0) {
+    const last = parts[parts.length-1];
+    if (last && last.length > 0) flashKey(last[0]);
+  }
+}
+
+// =============================================
+// MODE SWITCH
+// =============================================
+function switchMode(mode) {
+  currentMode = mode;
+  document.getElementById('tabEnc').classList.toggle('active', mode==='enc');
+  document.getElementById('tabDec').classList.toggle('active', mode==='dec');
+  document.getElementById('encMode').style.display = mode==='enc' ? '' : 'none';
+  document.getElementById('decMode').style.display = mode==='dec' ? '' : 'none';
+  document.getElementById('statMode').textContent = mode==='enc' ? 'ŠIFROVÁNÍ' : 'DEŠIFROVÁNÍ';
+  clearAll();
+}
+
+// =============================================
+// CONTROLS
+// =============================================
+function copyOutput() {
+  const text = currentMode==='enc'
+    ? document.getElementById('encOutput').textContent
+    : document.getElementById('decOutput').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = event.target;
+    const orig = btn.textContent;
+    btn.textContent = '✓ ZKOPÍROVÁNO';
+    setTimeout(() => btn.textContent = orig, 1500);
+  });
+}
+
+function clearAll() {
+  document.getElementById('encInputArea').value = '';
+  document.getElementById('encOutput').textContent = '';
+  document.getElementById('decInputArea').value = '';
+  document.getElementById('decOutput').textContent = '';
+  document.getElementById('statChars').textContent = '0';
+  document.getElementById('statGroups').textContent = '0';
+}
+
+// =============================================
+// INIT
+// =============================================
+buildKeypad();
+buildLegend();
+</script>
+</body>
+</html>
