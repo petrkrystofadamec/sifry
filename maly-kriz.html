@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MALÝ KŘÍŽ — Šifra</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#06080a; --panel:#0a0d10; --gold:#ffcc00; --gold-dim:#7a6000;
+  --gold-glow:rgba(255,204,0,0.13); --orange:#ff9900; --border:#302010;
+  --text:#e8d8a0; --text-dim:#605030;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;
+  background-image:
+    radial-gradient(ellipse at 20% 10%,rgba(255,204,0,0.05) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 90%,rgba(255,153,0,0.03) 0%,transparent 50%);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.07) 0px,rgba(0,0,0,0.07) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;z-index:1000;
+}
+header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);width:100%;max-width:1000px;}
+header h1{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:900;
+  color:var(--gold);text-shadow:0 0 20px var(--gold),0 0 50px rgba(255,204,0,0.3);
+  letter-spacing:0.3em;animation:flicker 9s infinite;
+}
+header .sub{color:var(--text-dim);font-size:0.7rem;letter-spacing:0.18em;margin-top:5px;}
+@keyframes flicker{0%,95%,100%{opacity:1}96%{opacity:0.82}97.5%{opacity:1}98.5%{opacity:0.9}}
+
+.machine{
+  width:100%;max-width:1000px;background:var(--panel);
+  border:1px solid var(--border);border-radius:4px;padding:22px;
+  box-shadow:0 0 50px rgba(255,204,0,0.04),inset 0 0 80px rgba(0,0,0,0.5);
+  display:flex;flex-direction:column;gap:18px;
+}
+.lbl{
+  font-family:'Orbitron',sans-serif;font-size:0.56rem;letter-spacing:0.25em;
+  color:var(--text-dim);text-transform:uppercase;margin-bottom:9px;
+  border-left:2px solid var(--gold-dim);padding-left:7px;
+}
+
+
+.ref-section{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0;}
+.ref-tables{display:flex;flex-direction:column;gap:16px;align-items:center;}
+.ref-row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;justify-content:center;}
+.ref-table-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.ref-table-title{font-family:'Orbitron',sans-serif;font-size:0.52rem;color:var(--text-dim);letter-spacing:0.15em;text-transform:uppercase;}
+canvas.ref-tbl{cursor:pointer;display:block;border-radius:3px;}
+
+.perrow-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.perrow-row span{font-size:0.65rem;color:var(--text-dim);}
+.perrow-row input[type=range]{accent-color:var(--gold);width:140px;cursor:pointer;}
+#perRowVal{color:var(--gold);font-size:0.7rem;min-width:60px;}
+
+.io-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.io-block{display:flex;flex-direction:column;gap:6px;}
+textarea{
+  background:#080600;border:1px solid var(--border);color:var(--gold);
+  font-family:'Share Tech Mono',monospace;font-size:0.95rem;
+  padding:9px 11px;border-radius:2px;outline:none;resize:vertical;
+  min-height:110px;line-height:1.7;text-transform:uppercase;width:100%;
+}
+textarea:focus{border-color:var(--gold);box-shadow:0 0 10px var(--gold-glow);}
+textarea::placeholder{color:var(--text-dim);}
+#outputCanvas{display:block;background:#fff;border-radius:3px;max-width:100%;}
+.canvas-hint{font-size:0.6rem;color:var(--text-dim);margin-top:5px;}
+
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;}
+.btn{
+  background:transparent;border:1px solid var(--gold-dim);color:var(--gold);
+  font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:0.14em;
+  padding:9px 16px;cursor:pointer;border-radius:2px;transition:all 0.15s;text-transform:uppercase;
+}
+.btn:hover{background:var(--gold-glow);border-color:var(--gold);box-shadow:0 0 12px var(--gold-glow);}
+.btn.primary{border-color:var(--gold);}
+.btn.success{border-color:#00cc66;color:#00ff88;}
+.btn.success:hover{background:rgba(0,255,136,0.08);border-color:#00ff88;}
+.btn.danger{border-color:rgba(255,60,60,0.3);color:#ff6060;}
+.btn.danger:hover{background:rgba(255,60,60,0.08);border-color:#ff6060;}
+
+.status-bar{
+  font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;
+  display:flex;gap:18px;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding-top:12px;
+}
+.status-bar span{color:var(--gold);}
+@media(max-width:650px){.io-row{grid-template-columns:1fr;}.ref-tables{gap:12px;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>✦ MALÝ KŘÍŽ ✦</h1>
+  <div class="sub">POZIČNÍ ŠIFRA — 4 TABULKY — MŘÍŽKA + X KŘÍŽ</div>
+</header>
+
+<div class="machine">
+  <!-- REF TABLES -->
+  <div class="ref-section">
+    <div class="lbl">▸ Šifrovací tabulky — klikněte na symbol pro vložení</div>
+    <div class="ref-tables">
+      <div class="ref-row">
+        <div class="ref-table-wrap">
+          <div class="ref-table-title">Tabulka 1 — bez tečky</div>
+          <canvas class="ref-tbl" id="refGrid1"></canvas>
+        </div>
+        <div class="ref-table-wrap">
+          <div class="ref-table-title">Tabulka 2 — s tečkou</div>
+          <canvas class="ref-tbl" id="refGrid2"></canvas>
+        </div>
+      </div>
+      <div class="ref-row">
+        <div class="ref-table-wrap">
+          <div class="ref-table-title">Tabulka 3 — X bez tečky</div>
+          <canvas class="ref-tbl" id="refX1"></canvas>
+        </div>
+        <div class="ref-table-wrap">
+          <div class="ref-table-title">Tabulka 4 — X s tečkou</div>
+          <canvas class="ref-tbl" id="refX2"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PER ROW -->
+  <div>
+    <div class="lbl">▸ Znaků na řádek</div>
+    <div class="perrow-row">
+      <span>MÉNĚ</span>
+      <input type="range" id="perRowSlider" min="5" max="30" value="10" oninput="updatePerRow()">
+      <span>VÍCE</span>
+      <span id="perRowVal">10 znaků/řádek</span>
+    </div>
+  </div>
+
+  <!-- IO -->
+  <div class="io-row">
+    <div class="io-block">
+      <div class="lbl">▸ Vstupní text</div>
+      <textarea id="inputArea" placeholder="Napište text nebo klikejte na tabulky..." oninput="onInput()" rows="5"></textarea>
+    </div>
+    <div class="io-block">
+      <div class="lbl">▸ Zašifrovaný výstup</div>
+      <canvas id="outputCanvas"></canvas>
+      <div class="canvas-hint">💾 Tlačítko ⬇ STÁHNOUT nebo pravý klik → Uložit obrázek → vložte do Wordu</div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-row">
+    <button class="btn primary" onclick="onInput()">▶ ŠIFROVAT</button>
+    <button class="btn success" onclick="downloadPNG()">⬇ STÁHNOUT PNG</button>
+    <button class="btn danger" onclick="clearAll()">✕ VYMAZAT</button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div>ZNAKY: <span id="statChars">0</span></div>
+    <div>SYMBOLY: <span id="statSyms">0</span></div>
+    <div>ŘÁDKŮ: <span id="statRows">0</span></div>
+  </div>
+
+</div>
+
+<script>
+// =============================================
+// MALÝ KŘÍŽ — definice
+//
+// 4 tabulky:
+//
+// TABULKA 1 — mřížka 3×3 BEZ tečky (A–I)
+// TABULKA 2 — mřížka 3×3 S tečkou  (J–R)
+// TABULKA 3 — X kříž BEZ tečky     (S,T,U,V)
+// TABULKA 4 — X kříž S tečkou      (W,X,Y,Z / CZ: CH,...)
+//
+// Mřížka 3×3 — buňky jako Velký kříž:
+//  1|2|3
+//  4|5|6
+//  7|8|9
+// Každá buňka = 1 písmeno (žádná pozice tečky uvnitř)
+//
+// X kříž — 4 oblasti:
+//  nahoře=S/W, vlevo=T/X, vpravo=U/Y, dole=V/Z
+// =============================================
+
+// Mřížka walls [top,right,bottom,left]
+const GRID_WALLS = [
+  [false,true, true, false], // 1
+  [false,true, true, true ], // 2
+  [false,false,true, true ], // 3
+  [true, true, true, false], // 4
+  [true, true, true, true ], // 5
+  [true, false,true, true ], // 6
+  [true, true, false,false], // 7
+  [true, true, false,true ], // 8
+  [true, false,false,true ], // 9
+];
+
+// X kříž oblasti: 0=nahoře, 1=vlevo, 2=vpravo, 3=dole
+const X_REGIONS = ['top','left','right','bottom'];
+
+const ALPHABETS = {
+  CZ: {
+    grid1: ['A','B','C','D','E','F','G','H','I'],   // buňky 1-9, bez tečky
+    grid2: ['J','K','L','M','N','O','P','Q','R'],   // buňky 1-9, s tečkou
+    x1:    ['S','T','U','V'],                        // X bez tečky: top,left,right,bottom
+    x2:    ['W','X','Y','Z'],                        // X s tečkou
+  },
+  EN: {
+    grid1: ['A','B','C','D','E','F','G','H','I'],
+    grid2: ['J','K','L','M','N','O','P','Q','R'],
+    x1:    ['S','T','U','V'],
+    x2:    ['W','X','Y','Z'],
+  }
+};
+
+const currentLang = 'CZ';
+let perRow = 10;
+let refHitAreas = {}; // keyed by canvasId
+
+// =============================================
+// DRAW GRID SYMBOL (část malé mřížky = 1 písmeno)
+// =============================================
+function drawGridSymbol(ctx, cx, cy, sz, cellIdx, hasDot, sc, dc) {
+  const pad = sz * 0.14;
+  const x0 = cx - sz/2 + pad, y0 = cy - sz/2 + pad;
+  const x1 = cx + sz/2 - pad, y1 = cy + sz/2 - pad;
+  const lw = Math.max(1.5, sz * 0.075);
+  const walls = GRID_WALLS[cellIdx];
+
+  ctx.save();
+  ctx.strokeStyle = sc || '#000';
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'miter';
+  ctx.beginPath();
+  if (walls[0]) { ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); }
+  if (walls[1]) { ctx.moveTo(x1,y0); ctx.lineTo(x1,y1); }
+  if (walls[2]) { ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); }
+  if (walls[3]) { ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); }
+  ctx.stroke();
+  ctx.restore();
+}
+
+// =============================================
+// DRAW X SYMBOL (trojúhelník z X kříže)
+// region: 0=top 1=left 2=right 3=bottom
+// =============================================
+function drawXSymbol(ctx, cx, cy, sz, region, sc) {
+  const pad = sz * 0.12;
+  const x0 = cx - sz/2 + pad, y0 = cy - sz/2 + pad;
+  const x1 = cx + sz/2 - pad, y1 = cy + sz/2 - pad;
+  const mx = (x0+x1)/2, my = (y0+y1)/2;
+  const lw = Math.max(1.5, sz * 0.075);
+
+  ctx.save();
+  ctx.strokeStyle = sc || '#000';
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+
+  // always draw both diagonals of the X
+  ctx.beginPath();
+  ctx.moveTo(x0,y0); ctx.lineTo(x1,y1);
+  ctx.moveTo(x1,y0); ctx.lineTo(x0,y1);
+  ctx.stroke();
+
+  // draw the two lines that enclose this region
+  ctx.lineWidth = lw * 1.3;
+  ctx.beginPath();
+  if (region === 0) { // top: top-left to top-right corner + both diag arms going up
+    ctx.moveTo(x0,y0); ctx.lineTo(mx,my); // top-left diagonal arm
+    ctx.moveTo(x1,y0); ctx.lineTo(mx,my); // top-right diagonal arm
+  } else if (region === 1) { // left
+    ctx.moveTo(x0,y0); ctx.lineTo(mx,my);
+    ctx.moveTo(x0,y1); ctx.lineTo(mx,my);
+  } else if (region === 2) { // right
+    ctx.moveTo(x1,y0); ctx.lineTo(mx,my);
+    ctx.moveTo(x1,y1); ctx.lineTo(mx,my);
+  } else { // bottom
+    ctx.moveTo(x0,y1); ctx.lineTo(mx,my);
+    ctx.moveTo(x1,y1); ctx.lineTo(mx,my);
+  }
+  ctx.stroke();
+  ctx.restore();
+}
+
+// =============================================
+// DRAW REF TABLE — GRID (3×3)
+// =============================================
+function drawRefGrid(canvasId, letters, hasDot, lang, hlIdx) {
+  const canvas = document.getElementById(canvasId);
+  const SZ = 70, GAP = 3, PAD = 10, DOT_AREA = hasDot ? 22 : 0;
+  const COLS = 3, ROWS = 3;
+  const cellW = SZ + GAP, cellH = SZ + GAP;
+  const W = PAD*2 + cellW*COLS - GAP;
+  const H = PAD*2 + cellH*ROWS - GAP + DOT_AREA;
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#0a0d10';
+  ctx.fillRect(0,0,W,H);
+
+  if (!refHitAreas[canvasId]) refHitAreas[canvasId] = [];
+  refHitAreas[canvasId] = [];
+
+  for (let i = 0; i < 9; i++) {
+    const col = i % 3, row = Math.floor(i/3);
+    const bx = PAD + col*cellW;
+    const by = PAD + row*cellH;
+    const cx = bx + SZ/2;
+    const cy = by + SZ/2;
+    const letter = letters[i];
+    if (!letter || letter === '_') continue;
+
+    const isHl = hlIdx === i;
+    refHitAreas[canvasId].push({idx:i, x:bx, y:by, w:SZ, h:SZ});
+
+    // cell background
+    ctx.fillStyle = isHl ? 'rgba(255,204,0,0.15)' : '#060400';
+    ctx.fillRect(bx, by, SZ, SZ);
+
+    // draw frame symbol (walls only, no dot — dot is per-table)
+    drawGridSymbol(ctx, cx, cy, SZ, i, false, isHl?'#ffee00':'#cc9900', '#ffcc00');
+
+    // letter in center of cell
+    ctx.font = `bold ${SZ*0.32}px Orbitron,monospace`;
+    ctx.fillStyle = isHl ? '#ffffff' : '#ffcc00';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(letter, cx, cy);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  // separator lines between cells
+  ctx.strokeStyle = '#302010';
+  ctx.lineWidth = 1;
+  for (let c=1;c<COLS;c++) {
+    const x = PAD + c*cellW - GAP/2;
+    ctx.beginPath(); ctx.moveTo(x, PAD); ctx.lineTo(x, PAD + cellH*ROWS - GAP); ctx.stroke();
+  }
+  for (let r=1;r<ROWS;r++) {
+    const y = PAD + r*cellH - GAP/2;
+    ctx.beginPath(); ctx.moveTo(PAD, y); ctx.lineTo(PAD + cellW*COLS - GAP, y); ctx.stroke();
+  }
+
+  // big dot below table if hasDot
+  if (hasDot) {
+    ctx.beginPath();
+    ctx.arc(W/2, H - DOT_AREA/2 - 2, 8, 0, Math.PI*2);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fill();
+  }
+}
+
+function drawRefX(canvasId, letters, hasDot, hlIdx) {
+  const canvas = document.getElementById(canvasId);
+  const SZ = 100, PAD = 18, LBL = 18, DOT_AREA = hasDot ? 24 : 0;
+  const W = PAD*2 + SZ + LBL*2;
+  const H = PAD*2 + SZ + LBL*2 + DOT_AREA;
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#0a0d10';
+  ctx.fillRect(0,0,W,H);
+
+  if (!refHitAreas[canvasId]) refHitAreas[canvasId] = [];
+  refHitAreas[canvasId] = [];
+
+  const cx = W/2, cy = PAD + LBL + SZ/2;
+  const half = SZ/2;
+  const x0 = cx-half, y0 = cy-half;
+  const x1 = cx+half, y1 = cy+half;
+
+  // Hit areas — celý čtverec X, region určíme při kliknutí podle diagonál
+  refHitAreas[canvasId] = [
+    {idx:-1, x:x0, y:y0, w:SZ, h:SZ, xHit:true, cx:cx, cy:cy},
+  ];
+
+  // draw full X
+  const lw = Math.max(2.5, SZ * 0.055);
+  ctx.strokeStyle = '#cc9900';
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(x0,y0); ctx.lineTo(x1,y1);
+  ctx.moveTo(x1,y0); ctx.lineTo(x0,y1);
+  ctx.stroke();
+
+  // highlight triangle
+  if (hlIdx >= 0) {
+    const tris = [
+      [[x0,y0],[cx,cy],[x1,y0]],
+      [[x0,y0],[cx,cy],[x0,y1]],
+      [[x1,y0],[cx,cy],[x1,y1]],
+      [[x0,y1],[cx,cy],[x1,y1]],
+    ];
+    ctx.fillStyle = 'rgba(255,204,0,0.18)';
+    ctx.beginPath();
+    const t = tris[hlIdx];
+    ctx.moveTo(t[0][0],t[0][1]); ctx.lineTo(t[1][0],t[1][1]); ctx.lineTo(t[2][0],t[2][1]);
+    ctx.closePath(); ctx.fill();
+  }
+
+  // labels: 0=top, 1=left, 2=right, 3=bottom
+  const lpos = [
+    {x:cx,   y:y0-6,   align:'center', base:'bottom'},
+    {x:x0-6, y:cy,     align:'right',  base:'middle'},
+    {x:x1+6, y:cy,     align:'left',   base:'middle'},
+    {x:cx,   y:y1+LBL, align:'center', base:'top'},
+  ];
+  letters.forEach((letter, i) => {
+    if (!letter || letter==='_') return;
+    const lp = lpos[i];
+    ctx.font = 'bold 13px Orbitron,monospace';
+    ctx.fillStyle = hlIdx===i ? '#ffee00' : '#ffcc00';
+    ctx.textAlign = lp.align;
+    ctx.textBaseline = lp.base;
+    ctx.fillText(letter, lp.x, lp.y);
+  });
+  ctx.textBaseline = 'alphabetic';
+
+  // tečka pod tabulkou
+  if (hasDot) {
+    ctx.beginPath();
+    ctx.arc(W/2, H - DOT_AREA/2 - 2, 9, 0, Math.PI*2);
+    ctx.fillStyle = '#ffcc00';
+    ctx.fill();
+  }
+}
+
+// =============================================
+// BUILD ENCODE MAP
+// =============================================
+function buildEncodeMap(lang) {
+  const alpha = ALPHABETS[lang];
+  const map = {};
+
+  alpha.grid1.forEach((l,i) => { if(l&&l!=='_') map[l] = {type:'grid', tableId:'refGrid1', cellIdx:i, hasDot:false}; });
+  alpha.grid2.forEach((l,i) => { if(l&&l!=='_') map[l] = {type:'grid', tableId:'refGrid2', cellIdx:i, hasDot:true}; });
+  alpha.x1.forEach((l,i)    => { if(l&&l!=='_') map[l] = {type:'x',    tableId:'refX1',   region:i,  hasDot:false}; });
+  alpha.x2.forEach((l,i)    => { if(l&&l!=='_') map[l] = {type:'x',    tableId:'refX2',   region:i,  hasDot:true}; });
+
+  return map;
+}
+
+// =============================================
+// DRAW OUTPUT SYMBOL on white canvas
+// =============================================
+function drawOutputGridSym(ctx, cx, cy, sz, cellIdx, hasDot) {
+  const pad = sz * 0.14;
+  const x0 = cx-sz/2+pad, y0 = cy-sz/2+pad;
+  const x1 = cx+sz/2-pad, y1 = cy+sz/2-pad;
+  const lw = Math.max(1.5, sz*0.075);
+  const walls = GRID_WALLS[cellIdx];
+  ctx.save();
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = lw; ctx.lineCap = 'square'; ctx.lineJoin = 'miter';
+  ctx.beginPath();
+  if (walls[0]) { ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); }
+  if (walls[1]) { ctx.moveTo(x1,y0); ctx.lineTo(x1,y1); }
+  if (walls[2]) { ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); }
+  if (walls[3]) { ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); }
+  ctx.stroke();
+  // dot inside the frame, bottom-center
+  if (hasDot) {
+    ctx.beginPath();
+    ctx.arc(cx, y0 + (y1-y0)*0.72, sz*0.09, 0, Math.PI*2);
+    ctx.fillStyle = '#000'; ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawOutputXSym(ctx, cx, cy, sz, region, hasDot) {
+  const pad = sz * 0.14;
+  const x0 = cx-sz/2+pad, y0 = cy-sz/2+pad;
+  const x1 = cx+sz/2-pad, y1 = cy+sz/2-pad;
+  const mx = (x0+x1)/2, my = (y0+y1)/2;
+  const lw = Math.max(1.5, sz*0.08);
+  ctx.save();
+  ctx.strokeStyle = '#000'; ctx.lineWidth = lw; ctx.lineCap = 'round';
+  // draw only the two arms of the active region (zobáček)
+  ctx.beginPath();
+  if (region===0) { ctx.moveTo(x0,y0); ctx.lineTo(mx,my); ctx.moveTo(x1,y0); ctx.lineTo(mx,my); } // ∧
+  else if (region===1) { ctx.moveTo(x0,y0); ctx.lineTo(mx,my); ctx.moveTo(x0,y1); ctx.lineTo(mx,my); } // <
+  else if (region===2) { ctx.moveTo(x1,y0); ctx.lineTo(mx,my); ctx.moveTo(x1,y1); ctx.lineTo(mx,my); } // >
+  else { ctx.moveTo(x0,y1); ctx.lineTo(mx,my); ctx.moveTo(x1,y1); ctx.lineTo(mx,my); } // ∨
+  ctx.stroke();
+  // dot inside the chevron — blíže ke středu, s mezerou od ramen
+  if (hasDot) {
+    const dotR = sz * 0.09;
+    const gap = dotR * 3.5; // větší mezera od zobáčku
+    let dotX = mx, dotY = my;
+    if (region===0)      dotY = my - gap;
+    else if (region===1) dotX = mx - gap;
+    else if (region===2) dotX = mx + gap;
+    else                 dotY = my + gap;
+    ctx.beginPath();
+    ctx.arc(dotX, dotY, dotR, 0, Math.PI*2);
+    ctx.fillStyle = '#000'; ctx.fill();
+  }
+  ctx.restore();
+}
+
+// =============================================
+// INPUT + ENCODE
+// =============================================
+function onInput() {
+  const val = document.getElementById('inputArea').value;
+  const syms = parseText(val);
+  document.getElementById('statChars').textContent = val.replace(/\s/g,'').length;
+  document.getElementById('statSyms').textContent = syms.filter(s=>!s.space).length;
+  renderOutput(syms);
+
+  // blink last typed letter
+  const last = [...syms].reverse().find(s=>!s.space);
+  if (last) blinkSym(last);
+  else redrawAllRef(-1, null);
+}
+
+function parseText(text) {
+  const map = buildEncodeMap(currentLang);
+  const upper = text.toUpperCase();
+  const syms = [];
+  let i = 0;
+  while (i < upper.length) {
+    const ch = upper[i];
+    if (ch===' '||ch==='\n') { syms.push({space:true}); i++; continue; }
+    let letter = ch, step = 1;
+    if (currentLang==='CZ' && ch==='C' && upper[i+1]==='H') { letter='CH'; step=2; }
+    const entry = map[letter];
+    if (entry) syms.push({...entry, letter});
+    i += step;
+  }
+  return syms;
+}
+
+let blinkTO = null;
+function blinkSym(sym) {
+  if (sym.type==='grid') {
+    redrawAllRef(sym.cellIdx, sym.tableId);
+  } else {
+    redrawAllRef(sym.region, sym.tableId);
+  }
+  if (blinkTO) clearTimeout(blinkTO);
+  blinkTO = setTimeout(() => redrawAllRef(-1, null), 350);
+}
+
+function redrawAllRef(hlIdx, hlTable) {
+  const alpha = ALPHABETS[currentLang];
+  drawRefGrid('refGrid1', alpha.grid1, false, currentLang, hlTable==='refGrid1'?hlIdx:-1);
+  drawRefGrid('refGrid2', alpha.grid2, true,  currentLang, hlTable==='refGrid2'?hlIdx:-1);
+  drawRefX('refX1', alpha.x1, false, hlTable==='refX1'?hlIdx:-1);
+  drawRefX('refX2', alpha.x2, true,  hlTable==='refX2'?hlIdx:-1);
+}
+
+// =============================================
+// RENDER OUTPUT
+// =============================================
+function renderOutput(syms) {
+  const SZ = 54, GAP = 8, WORD_GAP = 22, PAD = 16, ROW_GAP = 14;
+  // height per row: symbol + possible dot below
+  const SYM_H = SZ + 12; // extra for dot
+  const ROW_H = SYM_H + ROW_GAP;
+
+  const rows = [];
+  let currentRow = [], count = 0;
+  for (const sym of syms) {
+    if (sym.space) { if(currentRow.length>0) currentRow.push({space:true}); continue; }
+    currentRow.push(sym); count++;
+    if (count >= perRow) { rows.push(currentRow); currentRow=[]; count=0; }
+  }
+  if (currentRow.length>0) rows.push(currentRow);
+  if (rows.length===0) rows.push([]);
+
+  document.getElementById('statRows').textContent = rows.length;
+
+  function rowW(row) { return row.reduce((s,sym)=>s+(sym.space?WORD_GAP:SZ+GAP),0); }
+  const maxW = Math.max(...rows.map(rowW), 80);
+  const W = maxW + PAD*2;
+  const H = rows.length * ROW_H + PAD*2;
+
+  const canvas = document.getElementById('outputCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0,0,W,H);
+
+  rows.forEach((row, ri) => {
+    let x = PAD;
+    const cy = PAD + ri*ROW_H + SZ/2;
+    row.forEach(sym => {
+      if (sym.space) { x+=WORD_GAP; return; }
+      if (sym.type==='grid') {
+        drawOutputGridSym(ctx, x+SZ/2, cy, SZ, sym.cellIdx, sym.hasDot);
+      } else {
+        drawOutputXSym(ctx, x+SZ/2, cy, SZ, sym.region, sym.hasDot);
+      }
+      x += SZ+GAP;
+    });
+  });
+}
+
+// =============================================
+// CLICK HANDLERS
+// =============================================
+function setupClickHandler(canvasId, isX) {
+  document.getElementById(canvasId).addEventListener('click', function(e) {
+    const rect = this.getBoundingClientRect();
+    const scaleX = (this.width / (window.devicePixelRatio||1)) / rect.width;
+    const scaleY = (this.height / (window.devicePixelRatio||1)) / rect.height;
+    const mx = (e.clientX - rect.left) * scaleX;
+    const my = (e.clientY - rect.top) * scaleY;
+    const areas = refHitAreas[canvasId] || [];
+
+    for (const area of areas) {
+      if (mx >= area.x && mx <= area.x+area.w && my >= area.y && my <= area.y+area.h) {
+        const alpha = ALPHABETS[currentLang];
+        let letter;
+
+        if (area.xHit) {
+          const dx = mx - area.cx;
+          const dy = my - area.cy;
+          let region;
+          if (Math.abs(dy) >= Math.abs(dx)) {
+            region = dy < 0 ? 0 : 3;
+          } else {
+            region = dx < 0 ? 1 : 2;
+          }
+          if (canvasId==='refX1') letter = alpha.x1[region];
+          else                    letter = alpha.x2[region];
+        } else {
+          if (canvasId==='refGrid1')      letter = alpha.grid1[area.idx];
+          else if (canvasId==='refGrid2') letter = alpha.grid2[area.idx];
+        }
+
+        if (!letter || letter==='_') return;
+        document.getElementById('inputArea').value += letter;
+        onInput();
+        return;
+      }
+    }
+  });
+}
+
+// =============================================
+// CONTROLS
+// =============================================
+function updatePerRow() {
+  perRow = parseInt(document.getElementById('perRowSlider').value);
+  document.getElementById('perRowVal').textContent = perRow + ' znaků/řádek';
+  onInput();
+}
+
+function downloadPNG() {
+  const canvas = document.getElementById('outputCanvas');
+  canvas.toBlob(function(blob) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = 'maly-kriz-sifra.png';
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
+}
+
+
+function clearAll() {
+  document.getElementById('inputArea').value = '';
+  renderOutput([]);
+  document.getElementById('statChars').textContent = '0';
+  document.getElementById('statSyms').textContent = '0';
+  document.getElementById('statRows').textContent = '0';
+  redrawAllRef(-1, null);
+}
+
+// =============================================
+// INIT
+// =============================================
+setupClickHandler('refGrid1', false);
+setupClickHandler('refGrid2', false);
+setupClickHandler('refX1', true);
+setupClickHandler('refX2', true);
+redrawAllRef(-1, null);
+renderOutput([]);
+document.getElementById('perRowVal').textContent = perRow + ' znaků/řádek';
+</script>
+</body>
+</html>
