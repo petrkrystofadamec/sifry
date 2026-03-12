@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ENIGMA — Šifrovací Stroj</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap');
+
+  :root {
+    --bg: #0a0c08;
+    --panel: #111408;
+    --green: #4aff3a;
+    --green-dim: #1a6614;
+    --green-glow: rgba(74,255,58,0.15);
+    --amber: #ffb800;
+    --amber-dim: #7a5500;
+    --border: #2a3520;
+    --text: #c8e8c0;
+    --text-dim: #4a6642;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    background-image:
+      radial-gradient(ellipse at 50% 0%, rgba(74,255,58,0.05) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(74,255,58,0.015) 2px, rgba(74,255,58,0.015) 4px);
+  }
+
+  /* CRT scanline overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,0.08) 0px, rgba(0,0,0,0.08) 1px, transparent 1px, transparent 3px);
+    pointer-events: none;
+    z-index: 1000;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+    width: 100%;
+    max-width: 860px;
+  }
+
+  header h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: clamp(1.8rem, 5vw, 3rem);
+    font-weight: 900;
+    color: var(--green);
+    text-shadow: 0 0 20px var(--green), 0 0 40px rgba(74,255,58,0.4);
+    letter-spacing: 0.3em;
+    animation: flicker 8s infinite;
+  }
+
+  header p {
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    letter-spacing: 0.15em;
+    margin-top: 6px;
+  }
+
+  @keyframes flicker {
+    0%,96%,100% { opacity: 1; }
+    97% { opacity: 0.85; }
+    98% { opacity: 1; }
+    99% { opacity: 0.9; }
+  }
+
+  .machine {
+    width: 100%;
+    max-width: 860px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 24px;
+    box-shadow: 0 0 40px rgba(74,255,58,0.05), inset 0 0 60px rgba(0,0,0,0.4);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .section-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    border-left: 2px solid var(--green-dim);
+    padding-left: 8px;
+  }
+
+  /* ROTORS */
+  .rotors-section { border-bottom: 1px solid var(--border); padding-bottom: 20px; }
+
+  .rotors-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .rotor-unit {
+    background: #0c0e09;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .rotor-unit span {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.55rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+  }
+
+  .rotor-display {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--amber);
+    text-shadow: 0 0 12px var(--amber), 0 0 24px rgba(255,184,0,0.3);
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--amber-dim);
+    background: rgba(255,184,0,0.05);
+    border-radius: 3px;
+    cursor: default;
+    transition: all 0.1s;
+    user-select: none;
+  }
+
+  .rotor-display.tick {
+    transform: translateY(-2px);
+    text-shadow: 0 0 20px var(--amber), 0 0 40px rgba(255,184,0,0.6);
+  }
+
+  .rotor-controls { display: flex; gap: 6px; }
+
+  .btn-small {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+  }
+  .btn-small:hover {
+    border-color: var(--green);
+    color: var(--green);
+    background: var(--green-glow);
+  }
+
+  /* RING SETTINGS */
+  .ring-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 8px;
+  }
+  .ring-unit {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .ring-unit span { font-size: 0.55rem; color: var(--text-dim); font-family:'Orbitron',sans-serif; letter-spacing:0.15em; }
+  .ring-unit input[type=number] {
+    width: 100%;
+    background: #0c0e09;
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    padding: 6px;
+    text-align: center;
+    border-radius: 2px;
+    outline: none;
+  }
+  .ring-unit input[type=number]:focus { border-color: var(--green); box-shadow: 0 0 8px var(--green-glow); }
+
+  /* ROTOR SELECTION */
+  .rotor-select-row { display: flex; gap: 12px; margin-top: 8px; }
+  .rotor-select-unit { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .rotor-select-unit span { font-size: 0.55rem; color: var(--text-dim); font-family:'Orbitron',sans-serif; letter-spacing:0.15em; text-align:center; }
+  select {
+    background: #0c0e09;
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    padding: 6px;
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  select:focus { border-color: var(--green); }
+
+  /* REFLECTOR */
+  .reflector-row { display: flex; align-items: center; gap: 12px; }
+  .reflector-row span { font-size: 0.7rem; color: var(--text-dim); }
+
+  /* PLUGBOARD */
+  .plugboard-section { border-top: 1px solid var(--border); padding-top: 16px; }
+  .plugboard-input {
+    width: 100%;
+    background: #0c0e09;
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem;
+    padding: 10px 12px;
+    border-radius: 2px;
+    outline: none;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .plugboard-input:focus { border-color: var(--green); box-shadow: 0 0 10px var(--green-glow); }
+  .plugboard-hint { font-size: 0.65rem; color: var(--text-dim); margin-top: 4px; letter-spacing: 0.05em; }
+
+  /* IO */
+  .io-section {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+  }
+
+  .io-block { display: flex; flex-direction: column; gap: 6px; }
+
+  textarea {
+    background: #0c0e09;
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    border-radius: 2px;
+    outline: none;
+    resize: vertical;
+    min-height: 100px;
+    line-height: 1.6;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  textarea:focus { border-color: var(--green); box-shadow: 0 0 10px var(--green-glow); }
+  textarea[readonly] {
+    color: var(--amber);
+    border-color: var(--amber-dim);
+    text-shadow: 0 0 8px rgba(255,184,0,0.3);
+    cursor: default;
+  }
+
+  /* CONTROLS */
+  .controls-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+  }
+
+  .btn {
+    background: transparent;
+    border: 1px solid var(--green-dim);
+    color: var(--green);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    padding: 10px 20px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.15s;
+    text-transform: uppercase;
+  }
+  .btn:hover {
+    background: var(--green-glow);
+    border-color: var(--green);
+    box-shadow: 0 0 12px var(--green-glow);
+  }
+  .btn.primary {
+    border-color: var(--green);
+    box-shadow: inset 0 0 12px rgba(74,255,58,0.08);
+  }
+  .btn.danger {
+    border-color: #ff3a3a44;
+    color: #ff6060;
+  }
+  .btn.danger:hover { background: rgba(255,58,58,0.1); border-color: #ff6060; }
+
+  /* LAMP BOARD */
+  .lamp-board {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    justify-content: center;
+    padding: 12px;
+    background: #0a0c08;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+
+  .lamp {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-family: 'Orbitron', sans-serif;
+    color: var(--text-dim);
+    background: #0c0e09;
+    transition: all 0.08s;
+    user-select: none;
+  }
+
+  .lamp.lit {
+    color: var(--amber);
+    border-color: var(--amber);
+    background: rgba(255,184,0,0.15);
+    box-shadow: 0 0 10px rgba(255,184,0,0.5), 0 0 20px rgba(255,184,0,0.2);
+    text-shadow: 0 0 6px var(--amber);
+    animation: lamp-pulse 0.1s ease-out;
+  }
+
+  @keyframes lamp-pulse {
+    0% { transform: scale(1.2); }
+    100% { transform: scale(1); }
+  }
+
+  /* STATUS */
+  .status-bar {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    letter-spacing: 0.1em;
+    padding: 6px 0;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+  .status-bar span { color: var(--green); }
+
+  /* KEYBOARD */
+  .keyboard-section { border-top: 1px solid var(--border); padding-top: 16px; }
+  .keyboard-row {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    margin-bottom: 5px;
+  }
+  .key {
+    width: 36px;
+    height: 36px;
+    background: #0c0e09;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 3px;
+    transition: all 0.08s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .key:hover { border-color: var(--green-dim); color: var(--green); }
+  .key:active, .key.pressed {
+    background: var(--green-glow);
+    border-color: var(--green);
+    color: var(--green);
+    transform: translateY(1px);
+    box-shadow: 0 0 8px var(--green-glow);
+  }
+
+  @media (max-width: 600px) {
+    .io-section { grid-template-columns: 1fr; }
+    .rotors-grid { grid-template-columns: repeat(3, 1fr); }
+    .key { width: 28px; height: 28px; font-size: 0.7rem; }
+    .lamp { width: 26px; height: 26px; font-size: 0.6rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>⬡ ENIGMA ⬡</h1>
+  <p>ŠIFROVACÍ STROJ — Wehrmacht / Luftwaffe typ I — simulátor</p>
+</header>
+
+<div class="machine">
+
+  <!-- ROTOR SELECTION -->
+  <div class="rotors-section">
+    <div class="section-label">▸ Výběr rotorů</div>
+    <div class="rotor-select-row">
+      <div class="rotor-select-unit"><span>Rotor L</span>
+        <select id="rotorSelL">
+          <option value="I">I</option><option value="II">II</option><option value="III">III</option>
+          <option value="IV">IV</option><option value="V">V</option>
+        </select>
+      </div>
+      <div class="rotor-select-unit"><span>Rotor M</span>
+        <select id="rotorSelM">
+          <option value="II" selected>II</option><option value="I">I</option><option value="III">III</option>
+          <option value="IV">IV</option><option value="V">V</option>
+        </select>
+      </div>
+      <div class="rotor-select-unit"><span>Rotor R</span>
+        <select id="rotorSelR">
+          <option value="III" selected>III</option><option value="I">I</option><option value="II">II</option>
+          <option value="IV">IV</option><option value="V">V</option>
+        </select>
+      </div>
+      <div class="rotor-select-unit"><span>Reflektor</span>
+        <select id="reflectorSel">
+          <option value="B">UKW-B</option><option value="C">UKW-C</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- ROTOR POSITIONS -->
+    <div class="section-label" style="margin-top:16px">▸ Počáteční pozice</div>
+    <div class="rotors-grid">
+      <div class="rotor-unit">
+        <span>LEVÝ</span>
+        <div class="rotor-display" id="dispL">A</div>
+        <div class="rotor-controls">
+          <button class="btn-small" onclick="adjustRotor('L',-1)">▼</button>
+          <button class="btn-small" onclick="adjustRotor('L',1)">▲</button>
+        </div>
+      </div>
+      <div class="rotor-unit">
+        <span>STŘEDNÍ</span>
+        <div class="rotor-display" id="dispM">A</div>
+        <div class="rotor-controls">
+          <button class="btn-small" onclick="adjustRotor('M',-1)">▼</button>
+          <button class="btn-small" onclick="adjustRotor('M',1)">▲</button>
+        </div>
+      </div>
+      <div class="rotor-unit">
+        <span>PRAVÝ</span>
+        <div class="rotor-display" id="dispR">A</div>
+        <div class="rotor-controls">
+          <button class="btn-small" onclick="adjustRotor('R',-1)">▼</button>
+          <button class="btn-small" onclick="adjustRotor('R',1)">▲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RING SETTINGS -->
+    <div class="section-label" style="margin-top:16px">▸ Nastavení kroužku (Ringstellung)</div>
+    <div class="ring-row">
+      <div class="ring-unit"><span>LEVÝ</span><input type="number" id="ringL" min="1" max="26" value="1"></div>
+      <div class="ring-unit"><span>STŘEDNÍ</span><input type="number" id="ringM" min="1" max="26" value="1"></div>
+      <div class="ring-unit"><span>PRAVÝ</span><input type="number" id="ringR" min="1" max="26" value="1"></div>
+    </div>
+  </div>
+
+  <!-- PLUGBOARD -->
+  <div class="plugboard-section">
+    <div class="section-label">▸ Propojovací deska (Steckerbrett)</div>
+    <input class="plugboard-input" id="plugboard" placeholder="AB CD EF GH IJ KL..." maxlength="60" spellcheck="false">
+    <div class="plugboard-hint">Max 13 párů písmen oddělených mezerami (např: AZ BT CS DU EI FX)</div>
+  </div>
+
+  <!-- LAMP BOARD -->
+  <div>
+    <div class="section-label">▸ Světelná deska (Glühlampenfeld)</div>
+    <div class="lamp-board" id="lampBoard"></div>
+  </div>
+
+  <!-- KEYBOARD -->
+  <div class="keyboard-section">
+    <div class="section-label">▸ Klávesnice</div>
+    <div class="keyboard-row" id="kbRow1"></div>
+    <div class="keyboard-row" id="kbRow2"></div>
+    <div class="keyboard-row" id="kbRow3"></div>
+  </div>
+
+  <!-- IO -->
+  <div class="io-section">
+    <div class="io-block">
+      <div class="section-label">▸ Vstupní text</div>
+      <textarea id="inputText" placeholder="ZADEJTE TEXT..." spellcheck="false" rows="5"></textarea>
+    </div>
+    <div class="io-block">
+      <div class="section-label">▸ Výstupní text (šifrovaný)</div>
+      <textarea id="outputText" readonly placeholder="VÝSTUP..." rows="5"></textarea>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-row">
+    <button class="btn primary" onclick="encryptText()">▶ ŠIFROVAT / DEŠIFROVAT</button>
+    <button class="btn" onclick="resetRotors()">↺ RESET ROTORŮ</button>
+    <button class="btn danger" onclick="clearAll()">✕ VYMAZAT VŠE</button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div>ROTORY: <span id="statusRotors">I-II-III</span></div>
+    <div>POZICE: <span id="statusPos">A-A-A</span></div>
+    <div>KROUŽKY: <span id="statusRings">1-1-1</span></div>
+    <div>ZÁSTRČKY: <span id="statusPlugs">0</span></div>
+  </div>
+
+</div>
+
+<script>
+// ====== ENIGMA CORE ======
+
+const ROTORS = {
+  I:   { wiring: 'EKMFLGDQVZNTOWYHXUSPAIBRCJ', notch: 'Q' },
+  II:  { wiring: 'AJDKSIRUXBLHWTMCQGZNPYFVOE', notch: 'E' },
+  III: { wiring: 'BDFHJLCPRTXVZNYEIWGAKMUSQO', notch: 'V' },
+  IV:  { wiring: 'ESOVPZJAYQUIRHXLNFTGKDCMWB', notch: 'J' },
+  V:   { wiring: 'VZBRGITYUPSDNHLXAWMJQOFECK', notch: 'Z' },
+};
+
+const REFLECTORS = {
+  B: 'YRUHQSLDPXNGOKMIEBFZCWVJAT',
+  C: 'FVPJIAOYEDRZXWGCTKUQSBNMHL',
+};
+
+const ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+
+function mod(n, m) { return ((n % m) + m) % m; }
+
+function parsePlugboard(str) {
+  const pairs = {};
+  const parts = str.toUpperCase().replace(/[^A-Z ]/g,'').split(/\s+/).filter(p => p.length === 2);
+  const used = new Set();
+  for (const p of parts) {
+    const [a, b] = [p[0], p[1]];
+    if (a !== b && !used.has(a) && !used.has(b)) {
+      pairs[a] = b; pairs[b] = a;
+      used.add(a); used.add(b);
+    }
+  }
+  return pairs;
+}
+
+function plugSub(c, pairs) { return pairs[c] || c; }
+
+function rotorForward(c, wiring, pos, ring) {
+  const shift = mod(pos - ring, 26);
+  const idx = mod(ALPHA.indexOf(c) + shift, 26);
+  const out = wiring[idx];
+  return ALPHA[mod(ALPHA.indexOf(out) - shift, 26)];
+}
+
+function rotorBackward(c, wiring, pos, ring) {
+  const shift = mod(pos - ring, 26);
+  const idx = mod(ALPHA.indexOf(c) + shift, 26);
+  const fwd = ALPHA[idx];
+  const inv = ALPHA[wiring.indexOf(fwd)];
+  return ALPHA[mod(ALPHA.indexOf(inv) - shift, 26)];
+}
+
+// State
+let rotorPos = [0, 0, 0]; // L, M, R
+let initPos  = [0, 0, 0];
+let litLamp = null;
+let pressedKey = null;
+
+function getConfig() {
+  return {
+    rotors: [
+      document.getElementById('rotorSelL').value,
+      document.getElementById('rotorSelM').value,
+      document.getElementById('rotorSelR').value,
+    ],
+    reflector: document.getElementById('reflectorSel').value,
+    rings: [
+      parseInt(document.getElementById('ringL').value) - 1,
+      parseInt(document.getElementById('ringM').value) - 1,
+      parseInt(document.getElementById('ringR').value) - 1,
+    ],
+    plugs: parsePlugboard(document.getElementById('plugboard').value),
+  };
+}
+
+function encryptChar(c, cfg, pos) {
+  // Advance rotors (double-stepping)
+  const rR = ROTORS[cfg.rotors[2]];
+  const rM = ROTORS[cfg.rotors[1]];
+  const atNotchR = ALPHA[pos[2]] === rR.notch;
+  const atNotchM = ALPHA[pos[1]] === rM.notch;
+
+  if (atNotchM) { pos[1] = mod(pos[1]+1,26); pos[0] = mod(pos[0]+1,26); }
+  if (atNotchR) { pos[1] = mod(pos[1]+1,26); }
+  pos[2] = mod(pos[2]+1,26);
+
+  // Plugboard in
+  let ch = plugSub(c, cfg.plugs);
+
+  // Rotors R → M → L
+  ch = rotorForward(ch, ROTORS[cfg.rotors[2]].wiring, pos[2], cfg.rings[2]);
+  ch = rotorForward(ch, ROTORS[cfg.rotors[1]].wiring, pos[1], cfg.rings[1]);
+  ch = rotorForward(ch, ROTORS[cfg.rotors[0]].wiring, pos[0], cfg.rings[0]);
+
+  // Reflector
+  ch = REFLECTORS[cfg.reflector][ALPHA.indexOf(ch)];
+
+  // Rotors L → M → R
+  ch = rotorBackward(ch, ROTORS[cfg.rotors[0]].wiring, pos[0], cfg.rings[0]);
+  ch = rotorBackward(ch, ROTORS[cfg.rotors[1]].wiring, pos[1], cfg.rings[1]);
+  ch = rotorBackward(ch, ROTORS[cfg.rotors[2]].wiring, pos[2], cfg.rings[2]);
+
+  // Plugboard out
+  ch = plugSub(ch, cfg.plugs);
+  return ch;
+}
+
+// ====== UI ======
+
+function buildLampBoard() {
+  const board = document.getElementById('lampBoard');
+  board.innerHTML = '';
+  for (const c of ALPHA) {
+    const l = document.createElement('div');
+    l.className = 'lamp';
+    l.id = 'lamp_' + c;
+    l.textContent = c;
+    board.appendChild(l);
+  }
+}
+
+function buildKeyboard() {
+  const rows = ['QWERTYUIOP','ASDFGHJKL','ZXCVBNM'];
+  rows.forEach((row, i) => {
+    const el = document.getElementById('kbRow'+(i+1));
+    el.innerHTML = '';
+    for (const c of row) {
+      const k = document.createElement('div');
+      k.className = 'key';
+      k.id = 'key_' + c;
+      k.textContent = c;
+      k.addEventListener('mousedown', () => pressKey(c));
+      k.addEventListener('touchstart', e => { e.preventDefault(); pressKey(c); });
+      el.appendChild(k);
+    }
+  });
+}
+
+function lightLamp(c) {
+  if (litLamp) document.getElementById('lamp_'+litLamp)?.classList.remove('lit');
+  litLamp = c;
+  if (c) document.getElementById('lamp_'+c)?.classList.add('lit');
+}
+
+function flashKey(c) {
+  const el = document.getElementById('key_'+c);
+  if (!el) return;
+  el.classList.add('pressed');
+  setTimeout(() => el.classList.remove('pressed'), 120);
+}
+
+function pressKey(c) {
+  if (!ALPHA.includes(c)) return;
+  const cfg = getConfig();
+  const out = encryptChar(c, cfg, rotorPos);
+  lightLamp(out);
+  flashKey(c);
+  tickRotorDisplay();
+  updateStatus();
+
+  // Append to textarea IO
+  const inp = document.getElementById('inputText');
+  const outp = document.getElementById('outputText');
+  inp.value += c;
+  outp.value += out;
+
+  setTimeout(() => lightLamp(null), 400);
+}
+
+function tickRotorDisplay() {
+  ['L','M','R'].forEach((side, i) => {
+    const el = document.getElementById('disp'+side);
+    el.textContent = ALPHA[rotorPos[i]];
+    el.classList.add('tick');
+    setTimeout(() => el.classList.remove('tick'), 100);
+  });
+}
+
+function adjustRotor(side, dir) {
+  const idx = {L:0, M:1, R:2}[side];
+  rotorPos[idx] = mod(rotorPos[idx] + dir, 26);
+  initPos[idx] = rotorPos[idx];
+  document.getElementById('disp'+side).textContent = ALPHA[rotorPos[idx]];
+  updateStatus();
+}
+
+function resetRotors() {
+  rotorPos = [...initPos];
+  tickRotorDisplay();
+  updateStatus();
+}
+
+function encryptText() {
+  const cfg = getConfig();
+  const pos = [...initPos]; // fresh copy
+  const text = document.getElementById('inputText').value.toUpperCase().replace(/[^A-Z]/g, '');
+  let result = '';
+  for (const c of text) result += encryptChar(c, cfg, pos);
+  document.getElementById('outputText').value = result;
+  rotorPos = [...pos];
+  tickRotorDisplay();
+  updateStatus();
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('outputText').value = '';
+  lightLamp(null);
+  rotorPos = [...initPos];
+  tickRotorDisplay();
+}
+
+function updateStatus() {
+  const cfg = getConfig();
+  document.getElementById('statusRotors').textContent = cfg.rotors.join('-');
+  document.getElementById('statusPos').textContent = rotorPos.map(p => ALPHA[p]).join('-');
+  document.getElementById('statusRings').textContent = cfg.rings.map(r => r+1).join('-');
+  const plugCount = Object.keys(cfg.plugs).length / 2;
+  document.getElementById('statusPlugs').textContent = plugCount;
+}
+
+// Physical keyboard
+document.addEventListener('keydown', e => {
+  const c = e.key.toUpperCase();
+  if (e.key === 'Backspace') {
+    const inp = document.getElementById('inputText');
+    const outp = document.getElementById('outputText');
+    inp.value = inp.value.slice(0,-1);
+    outp.value = outp.value.slice(0,-1);
+    return;
+  }
+  if (ALPHA.includes(c) && !e.ctrlKey && !e.altKey && !e.metaKey) {
+    e.preventDefault();
+    pressKey(c);
+  }
+});
+
+// Live rotor display update from ring/select change
+document.querySelectorAll('select, input[type=number]').forEach(el => {
+  el.addEventListener('change', updateStatus);
+});
+
+// Init
+buildLampBoard();
+buildKeyboard();
+updateStatus();
+</script>
+
+</body>
+</html>
