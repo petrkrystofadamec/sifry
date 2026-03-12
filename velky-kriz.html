@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELKÝ KŘÍŽ — Šifra</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#06080a; --panel:#0a0d10; --blue:#00c8ff; --blue-dim:#005a7a;
+  --blue-glow:rgba(0,200,255,0.13); --cyan:#00ffcc; --border:#102030;
+  --text:#b0d8e8; --text-dim:#305060;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;
+  background-image:
+    radial-gradient(ellipse at 20% 10%,rgba(0,200,255,0.05) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 90%,rgba(0,255,204,0.03) 0%,transparent 50%);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.07) 0px,rgba(0,0,0,0.07) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;z-index:1000;
+}
+header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);width:100%;max-width:1000px;}
+header h1{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:900;
+  color:var(--blue);text-shadow:0 0 20px var(--blue),0 0 50px rgba(0,200,255,0.3);
+  letter-spacing:0.3em;animation:flicker 9s infinite;
+}
+header .sub{color:var(--text-dim);font-size:0.7rem;letter-spacing:0.18em;margin-top:5px;}
+@keyframes flicker{0%,95%,100%{opacity:1}96%{opacity:0.82}97.5%{opacity:1}98.5%{opacity:0.9}}
+
+.machine{
+  width:100%;max-width:1000px;background:var(--panel);
+  border:1px solid var(--border);border-radius:4px;padding:22px;
+  box-shadow:0 0 50px rgba(0,200,255,0.04),inset 0 0 80px rgba(0,0,0,0.5);
+  display:flex;flex-direction:column;gap:18px;
+}
+.lbl{
+  font-family:'Orbitron',sans-serif;font-size:0.56rem;letter-spacing:0.25em;
+  color:var(--text-dim);text-transform:uppercase;margin-bottom:9px;
+  border-left:2px solid var(--blue-dim);padding-left:7px;
+}
+.lang-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.lang-btn{
+  font-family:'Orbitron',sans-serif;font-size:0.65rem;letter-spacing:0.2em;
+  padding:8px 20px;border:1px solid var(--border);background:transparent;
+  color:var(--text-dim);cursor:pointer;border-radius:2px;transition:all 0.15s;
+}
+.lang-btn.active{border-color:var(--blue);color:var(--blue);background:var(--blue-glow);box-shadow:0 0 12px var(--blue-glow);}
+.lang-hint{font-size:0.62rem;color:var(--text-dim);}
+
+/* REF TABLE — clickable canvas */
+.ref-section{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0;}
+#refCanvas{cursor:pointer;display:block;max-width:100%;border-radius:3px;}
+
+/* IO */
+.io-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.io-block{display:flex;flex-direction:column;gap:6px;}
+textarea{
+  background:#060a0c;border:1px solid var(--border);color:var(--blue);
+  font-family:'Share Tech Mono',monospace;font-size:0.95rem;
+  padding:9px 11px;border-radius:2px;outline:none;resize:vertical;
+  min-height:110px;line-height:1.7;text-transform:uppercase;width:100%;
+}
+textarea:focus{border-color:var(--blue);box-shadow:0 0 10px var(--blue-glow);}
+textarea::placeholder{color:var(--text-dim);}
+
+#outputCanvas{display:block;background:#fff;border-radius:3px;max-width:100%;}
+.canvas-hint{font-size:0.6rem;color:var(--text-dim);margin-top:5px;}
+
+/* Per-row control */
+.perrow-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.perrow-row span{font-size:0.65rem;color:var(--text-dim);}
+.perrow-row input[type=range]{accent-color:var(--blue);width:140px;cursor:pointer;}
+#perRowVal{color:var(--blue);font-size:0.7rem;min-width:60px;}
+
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{
+  background:transparent;border:1px solid var(--blue-dim);color:var(--blue);
+  font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:0.14em;
+  padding:9px 16px;cursor:pointer;border-radius:2px;transition:all 0.15s;text-transform:uppercase;
+}
+.btn:hover{background:var(--blue-glow);border-color:var(--blue);box-shadow:0 0 12px var(--blue-glow);}
+.btn.primary{border-color:var(--blue);}
+.btn.success{border-color:#00cc66;color:#00ff88;}
+.btn.success:hover{background:rgba(0,255,136,0.08);border-color:#00ff88;}
+.btn.danger{border-color:rgba(255,60,60,0.3);color:#ff6060;}
+.btn.danger:hover{background:rgba(255,60,60,0.08);border-color:#ff6060;}
+
+.status-bar{
+  font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;
+  display:flex;gap:18px;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding-top:12px;
+}
+.status-bar span{color:var(--blue);}
+@media(max-width:650px){.io-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>✛ VELKÝ KŘÍŽ ✛</h1>
+  <div class="sub">POZIČNÍ ŠIFRA — TVAR RÁMEČKU + POZICE TEČKY — CZ / EN</div>
+</header>
+
+<div class="machine">
+
+  <!-- LANG -->
+  <div>
+    <div class="lbl">▸ Jazyk / abeceda</div>
+    <div class="lang-row">
+      <button class="lang-btn active" id="btnCZ" onclick="setLang('CZ')">🇨🇿 ČEŠTINA</button>
+      <button class="lang-btn" id="btnEN" onclick="setLang('EN')">🇬🇧 ENGLISH</button>
+      <span class="lang-hint" id="langHint">Česká abeceda — CH jako samostatné písmeno</span>
+    </div>
+  </div>
+
+  <!-- REF TABLE -->
+  <div class="ref-section">
+    <div class="lbl">▸ Šifrovací tabulka — klikněte na symbol pro vložení písmene</div>
+    <canvas id="refCanvas"></canvas>
+  </div>
+
+  <!-- PER ROW -->
+  <div>
+    <div class="lbl">▸ Znaků na řádek ve výstupu</div>
+    <div class="perrow-row">
+      <span>MÉNĚ</span>
+      <input type="range" id="perRowSlider" min="5" max="30" value="10" oninput="updatePerRow()">
+      <span>VÍCE</span>
+      <span id="perRowVal">10 znaků/řádek</span>
+    </div>
+  </div>
+
+  <!-- IO -->
+  <div class="io-row">
+    <div class="io-block">
+      <div class="lbl">▸ Vstupní text</div>
+      <textarea id="inputArea" placeholder="Napište text nebo klikejte na tabulku..." oninput="onInput()" rows="5"></textarea>
+    </div>
+    <div class="io-block">
+      <div class="lbl">▸ Zašifrovaný výstup — bílé pozadí pro Word</div>
+      <canvas id="outputCanvas"></canvas>
+      <div class="canvas-hint">💾 Tlačítko ⬇ STÁHNOUT nebo pravý klik → Uložit obrázek → vložte do Wordu</div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-row">
+    <button class="btn primary" onclick="onInput()">▶ ŠIFROVAT</button>
+    <button class="btn success" onclick="downloadPNG()">⬇ STÁHNOUT PNG</button>
+    <button class="btn danger" onclick="clearAll()">✕ VYMAZAT</button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div>JAZYK: <span id="statLang">CZ</span></div>
+    <div>ZNAKY: <span id="statChars">0</span></div>
+    <div>SYMBOLY: <span id="statSyms">0</span></div>
+    <div>ŘÁDKŮ: <span id="statRows">0</span></div>
+  </div>
+
+</div>
+
+<script>
+// =============================================
+// GRID DEFINITION
+//
+// Správné rozložení mřížky dle zadání:
+//
+// CZ:
+//  Řádek 1:  A  B  C  D  E  F  G  H  CH   (buňky 1-9, pozice 0)
+//  Řádek 2:  I  J  K  L  M  N  O  P  Q    (buňky 1-9, pozice 1)
+//  Řádek 3:  R  S  T  U  V  W  X  Y  Z    (buňky 1-9, pozice 2)
+//
+// EN:
+//  Řádek 1:  A  B  C  D  E  F  G  H  I
+//  Řádek 2:  J  K  L  M  N  O  P  Q  R
+//  Řádek 3:  S  T  U  V  W  X  Y  Z
+//
+// Buňky (sloupce) 1-9 odpovídají pozici v kříži:
+//  1 | 2 | 3
+//  4 | 5 | 6
+//  7 | 8 | 9
+//
+// CELL_WALLS[i] = [top, right, bottom, left]
+// =============================================
+
+const CELL_WALLS = [
+  [false, true,  true,  false], // buňka 1 — vlevo nahoře
+  [false, true,  true,  true ], // buňka 2 — střed nahoře
+  [false, false, true,  true ], // buňka 3 — vpravo nahoře
+  [true,  true,  true,  false], // buňka 4 — vlevo střed
+  [true,  true,  true,  true ], // buňka 5 — střed střed
+  [true,  false, true,  true ], // buňka 6 — vpravo střed
+  [true,  true,  false, false], // buňka 7 — vlevo dole
+  [true,  true,  false, true ], // buňka 8 — střed dole
+  [true,  false, false, true ], // buňka 9 — vpravo dole
+];
+
+// GRIDS[lang][cellIdx][posIdx] = letter
+// cellIdx = buňka 0-8 (pozice v kříži), posIdx = pozice tečky (0=vlevo, 1=střed, 2=vpravo)
+//
+// Rozložení buněk v kříži:
+//  1 | 2 | 3
+//  4 | 5 | 6
+//  7 | 8 | 9
+//
+// CZ: buňka1=ABC, 2=DEF, 3=GHCh, 4=IJK, 5=LMN, 6=OPQ, 7=RST, 8=UVW, 9=XYZ
+// EN: buňka1=ABC, 2=DEF, 3=GHI,  4=JKL, 5=MNO, 6=PQR, 7=STU, 8=VWX, 9=YZ
+const GRIDS = {
+  CZ: [
+    ['A','B','C'],   // buňka 1
+    ['D','E','F'],   // buňka 2
+    ['G','H','CH'],  // buňka 3
+    ['I','J','K'],   // buňka 4
+    ['L','M','N'],   // buňka 5
+    ['O','P','Q'],   // buňka 6
+    ['R','S','T'],   // buňka 7
+    ['U','V','W'],   // buňka 8
+    ['X','Y','Z'],   // buňka 9
+  ],
+  EN: [
+    ['A','B','C'],   // buňka 1
+    ['D','E','F'],   // buňka 2
+    ['G','H','I'],   // buňka 3
+    ['J','K','L'],   // buňka 4
+    ['M','N','O'],   // buňka 5
+    ['P','Q','R'],   // buňka 6
+    ['S','T','U'],   // buňka 7
+    ['V','W','X'],   // buňka 8
+    ['Y','Z','_'],   // buňka 9
+  ]
+};
+
+let currentLang = 'CZ';
+let perRow = 10;
+let highlightedCell = -1; // for blink effect
+
+// =============================================
+// DRAW SYMBOL
+// cx, cy = center; sz = size
+// cellIdx 0-8, dotPos 0=top-row 1=mid-row 2=bot-row
+// =============================================
+function drawSymbol(ctx, cx, cy, sz, cellIdx, dotPos, sc, dc) {
+  const pad = sz * 0.14;
+  const x0 = cx - sz/2 + pad, y0 = cy - sz/2 + pad;
+  const x1 = cx + sz/2 - pad, y1 = cy + sz/2 - pad;
+  const lw = Math.max(1.5, sz * 0.075);
+  const walls = CELL_WALLS[cellIdx];
+
+  ctx.save();
+  ctx.strokeStyle = sc || '#000';
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'miter';
+  ctx.beginPath();
+  if (walls[0]) { ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); }
+  if (walls[1]) { ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); }
+  if (walls[2]) { ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); }
+  if (walls[3]) { ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); }
+  ctx.stroke();
+
+  // dot — horizontal position: 0=vlevo, 1=střed, 2=vpravo
+  const innerW = x1 - x0;
+  const dotY = cy;
+  let dotX;
+  if (dotPos === 0)      dotX = x0 + innerW * 0.2;
+  else if (dotPos === 1) dotX = x0 + innerW * 0.5;
+  else                   dotX = x0 + innerW * 0.8;
+
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, sz * 0.09, 0, Math.PI*2);
+  ctx.fillStyle = dc || '#000';
+  ctx.fill();
+  ctx.restore();
+}
+
+// =============================================
+// REF TABLE — layout 3×3 velké buňky
+// Každá velká buňka odpovídá jedné pozici v kříži
+// a obsahuje 3 symboly (tečka vlevo/střed/vpravo) vedle sebe
+//
+// Velká mřížka:
+//  buňka0(ABC) | buňka1(DEF) | buňka2(GHCh)
+//  buňka3(IJK) | buňka4(LMN) | buňka5(OPQ)
+//  buňka6(RST) | buňka7(UVW) | buňka8(XYZ)
+// =============================================
+const SYM_SZ   = 52;   // velikost jednoho symbolu
+const SYM_GAP  = 6;    // mezera mezi symboly uvnitř buňky
+const LBL_H    = 18;   // výška popisku pod symbolem
+const CELL_PAD = 10;   // padding uvnitř velké buňky
+const CELL_SEP = 3;    // tloušťka oddělovače mezi buňkami
+const OUTER_PAD = 14;  // vnější padding canvasu
+
+// šířka jedné velké buňky = 3 symboly + mezery + padding
+const BIG_CELL_W = CELL_PAD * 2 + SYM_SZ * 3 + SYM_GAP * 2;
+const BIG_CELL_H = CELL_PAD * 2 + SYM_SZ + LBL_H;
+
+let refHitAreas = [];
+
+function drawRefTable(lang, highlightCi, highlightPi) {
+  const canvas = document.getElementById('refCanvas');
+  const grid = GRIDS[lang];
+
+  const COLS = 3, ROWS = 3;
+  const W = OUTER_PAD * 2 + BIG_CELL_W * COLS + CELL_SEP * (COLS - 1);
+  const H = OUTER_PAD * 2 + BIG_CELL_H * ROWS + CELL_SEP * (ROWS - 1);
+
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#0a0d10';
+  ctx.fillRect(0, 0, W, H);
+
+  refHitAreas = [];
+
+  for (let gridRow = 0; gridRow < ROWS; gridRow++) {
+    for (let gridCol = 0; gridCol < COLS; gridCol++) {
+      const ci = gridRow * COLS + gridCol; // buňka 0-8
+      const cell = grid[ci];
+
+      // pozice levého horního rohu velké buňky
+      const bx = OUTER_PAD + gridCol * (BIG_CELL_W + CELL_SEP);
+      const by = OUTER_PAD + gridRow * (BIG_CELL_H + CELL_SEP);
+
+      // pozadí velké buňky
+      ctx.fillStyle = '#060a0c';
+      ctx.fillRect(bx, by, BIG_CELL_W, BIG_CELL_H);
+
+      // ohraničení velké buňky
+      ctx.strokeStyle = '#1a3040';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, BIG_CELL_W, BIG_CELL_H);
+
+      // 3 symboly uvnitř buňky
+      for (let pi = 0; pi < 3; pi++) {
+        const letter = cell[pi];
+        if (!letter || letter === '_') continue;
+
+        // x střed tohoto symbolu
+        const symCx = bx + CELL_PAD + pi * (SYM_SZ + SYM_GAP) + SYM_SZ / 2;
+        const symCy = by + CELL_PAD + SYM_SZ / 2;
+
+        // hit area pro každý symbol zvlášť
+        const hitX = bx + CELL_PAD + pi * (SYM_SZ + SYM_GAP);
+        const hitY = by;
+        refHitAreas.push({ cellIdx: ci, posIdx: pi, x: hitX, y: hitY, w: SYM_SZ + SYM_GAP, h: BIG_CELL_H });
+
+        const isHl = (highlightCi === ci && highlightPi === pi);
+        if (isHl) {
+          ctx.fillStyle = 'rgba(0,200,255,0.18)';
+          ctx.fillRect(hitX, hitY + 2, SYM_SZ + SYM_GAP - 2, BIG_CELL_H - 4);
+        }
+
+        const sc = isHl ? '#00ffcc' : '#00a0cc';
+        const dc = isHl ? '#ffffff' : '#00ffcc';
+        drawSymbol(ctx, symCx, symCy, SYM_SZ, ci, pi, sc, dc);
+
+        // popisek písmene
+        ctx.font = 'bold 11px Orbitron, monospace';
+        ctx.fillStyle = isHl ? '#00ffcc' : '#00c8ff';
+        ctx.textAlign = 'center';
+        ctx.fillText(letter, symCx, by + CELL_PAD + SYM_SZ + LBL_H - 2);
+      }
+    }
+  }
+
+  // silnější oddělovače mezi velkými buňkami (kříž)
+  ctx.strokeStyle = '#2a4860';
+  ctx.lineWidth = CELL_SEP;
+  // vertikální
+  for (let c = 1; c < COLS; c++) {
+    const x = OUTER_PAD + c * (BIG_CELL_W + CELL_SEP) - CELL_SEP / 2;
+    ctx.beginPath(); ctx.moveTo(x, OUTER_PAD); ctx.lineTo(x, H - OUTER_PAD); ctx.stroke();
+  }
+  // horizontální
+  for (let r = 1; r < ROWS; r++) {
+    const y = OUTER_PAD + r * (BIG_CELL_H + CELL_SEP) - CELL_SEP / 2;
+    ctx.beginPath(); ctx.moveTo(OUTER_PAD, y); ctx.lineTo(W - OUTER_PAD, y); ctx.stroke();
+  }
+}
+
+// =============================================
+// REF TABLE CLICK
+// =============================================
+document.getElementById('refCanvas').addEventListener('click', function(e) {
+  const rect = this.getBoundingClientRect();
+  const scaleX = (this.width / (window.devicePixelRatio||1)) / rect.width;
+  const x = (e.clientX - rect.left) * scaleX;
+  const y = (e.clientY - rect.top) * scaleX;
+
+  for (const area of refHitAreas) {
+    if (x >= area.x && x <= area.x + area.w && y >= area.y && y <= area.y + area.h) {
+      const letter = GRIDS[currentLang][area.cellIdx][area.posIdx];
+      if (!letter || letter === '_') return;
+      const inp = document.getElementById('inputArea');
+      inp.value += letter;
+      onInput();
+      // blink
+      blinkCell(area.cellIdx, area.posIdx);
+      return;
+    }
+  }
+});
+
+let blinkTimeout = null;
+function blinkCell(ci, pi) {
+  drawRefTable(currentLang, ci, pi);
+  if (blinkTimeout) clearTimeout(blinkTimeout);
+  blinkTimeout = setTimeout(() => drawRefTable(currentLang, -1, -1), 300);
+}
+
+// =============================================
+// ENCODE MAP
+// =============================================
+function buildEncodeMap(lang) {
+  const map = {};
+  GRIDS[lang].forEach((cell, ci) => {
+    cell.forEach((letter, pi) => {
+      if (letter && letter !== '_') map[letter] = { ci, pi };
+    });
+  });
+  return map;
+}
+
+// =============================================
+// INPUT HANDLER
+// =============================================
+function onInput() {
+  const val = document.getElementById('inputArea').value;
+  const syms = parseText(val);
+  document.getElementById('statChars').textContent = val.replace(/\s/g,'').length;
+  document.getElementById('statSyms').textContent = syms.filter(s=>!s.space).length;
+  document.getElementById('statLang').textContent = currentLang;
+  renderOutput(syms);
+
+  // highlight last typed letter in ref table
+  if (syms.length > 0) {
+    const last = [...syms].reverse().find(s => !s.space);
+    if (last) blinkCell(last.ci, last.pi);
+  }
+}
+
+function parseText(text) {
+  const map = buildEncodeMap(currentLang);
+  const upper = text.toUpperCase();
+  const syms = [];
+  let i = 0;
+  while (i < upper.length) {
+    const ch = upper[i];
+    if (ch === ' ' || ch === '\n') { syms.push({space:true}); i++; continue; }
+    let letter = ch, step = 1;
+    if (currentLang === 'CZ' && ch === 'C' && upper[i+1] === 'H') { letter = 'CH'; step = 2; }
+    const entry = map[letter];
+    if (entry) syms.push({ci: entry.ci, pi: entry.pi, letter});
+    i += step;
+  }
+  return syms;
+}
+
+// =============================================
+// RENDER OUTPUT CANVAS
+// Clean white, no labels, fixed chars per row
+// =============================================
+function renderOutput(syms) {
+  const SZ = 58;         // symbol size
+  const GAP = 10;        // gap between symbols
+  const WORD_GAP = 26;   // extra gap for space
+  const PAD = 18;        // padding
+  const ROW_H = SZ + GAP + 8;
+
+  // split into rows of `perRow` non-space symbols
+  const rows = [];
+  let currentRow = [];
+  let count = 0;
+
+  for (const sym of syms) {
+    if (sym.space) {
+      if (currentRow.length > 0) currentRow.push({space:true});
+      continue;
+    }
+    currentRow.push(sym);
+    count++;
+    if (count >= perRow) {
+      rows.push(currentRow);
+      currentRow = [];
+      count = 0;
+    }
+  }
+  if (currentRow.length > 0) rows.push(currentRow);
+  if (rows.length === 0) rows.push([]);
+
+  document.getElementById('statRows').textContent = rows.length;
+
+  // measure row widths
+  function rowWidth(row) {
+    let w = 0;
+    row.forEach(s => { w += s.space ? WORD_GAP : SZ + GAP; });
+    return w;
+  }
+  const maxW = Math.max(...rows.map(rowWidth), 100);
+
+  const W = maxW + PAD * 2;
+  const H = rows.length * ROW_H + PAD * 2;
+
+  const canvas = document.getElementById('outputCanvas');
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  // WHITE bg
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  rows.forEach((row, ri) => {
+    let x = PAD;
+    const cy = PAD + ri * ROW_H + SZ / 2;
+    row.forEach(sym => {
+      if (sym.space) { x += WORD_GAP; return; }
+      drawSymbol(ctx, x + SZ/2, cy, SZ, sym.ci, sym.pi, '#000000', '#000000');
+      x += SZ + GAP;
+    });
+  });
+}
+
+// =============================================
+// CONTROLS
+// =============================================
+function updatePerRow() {
+  perRow = parseInt(document.getElementById('perRowSlider').value);
+  document.getElementById('perRowVal').textContent = perRow + ' znaků/řádek';
+  onInput();
+}
+
+function downloadPNG() {
+  const canvas = document.getElementById('outputCanvas');
+  canvas.toBlob(function(blob) {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = 'velky-kriz-sifra.png';
+    link.href = url;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }, 'image/png');
+}
+
+function setLang(lang) {
+  currentLang = lang;
+  document.getElementById('btnCZ').classList.toggle('active', lang === 'CZ');
+  document.getElementById('btnEN').classList.toggle('active', lang === 'EN');
+  document.getElementById('langHint').textContent = lang === 'CZ'
+    ? 'Česká abeceda — CH jako samostatné písmeno'
+    : 'English alphabet — 26 letters';
+  document.getElementById('statLang').textContent = lang;
+  drawRefTable(lang, -1, -1);
+  clearAll();
+}
+
+function clearAll() {
+  document.getElementById('inputArea').value = '';
+  renderOutput([]);
+  document.getElementById('statChars').textContent = '0';
+  document.getElementById('statSyms').textContent = '0';
+  document.getElementById('statRows').textContent = '0';
+  drawRefTable(currentLang, -1, -1);
+}
+
+// =============================================
+// INIT
+// =============================================
+drawRefTable('CZ', -1, -1);
+renderOutput([]);
+document.getElementById('perRowVal').textContent = perRow + ' znaků/řádek';
+</script>
+</body>
+</html>
