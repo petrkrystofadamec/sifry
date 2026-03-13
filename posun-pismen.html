@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POSUN PÍSMEN</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#08060a; --panel:#0e0a14; --purple:#bf80ff; --purple-dim:#7040aa;
+  --purple-glow:rgba(191,128,255,0.14); --border:#1a0a2e; --text:#e8d8f8; --text-dim:#7050a0;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;
+  background-image:
+    radial-gradient(ellipse at 15% 10%,rgba(140,60,255,0.07) 0%,transparent 55%),
+    radial-gradient(ellipse at 85% 85%,rgba(100,40,200,0.05) 0%,transparent 55%);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.08) 0px,rgba(0,0,0,0.08) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;z-index:1000;
+}
+header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);width:100%;max-width:900px;}
+header h1{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:900;
+  color:var(--purple);text-shadow:0 0 20px var(--purple),0 0 50px rgba(191,128,255,0.3);
+  letter-spacing:0.3em;animation:flicker 11s infinite;
+}
+header .sub{color:var(--text-dim);font-size:0.7rem;letter-spacing:0.18em;margin-top:5px;}
+@keyframes flicker{0%,96%,100%{opacity:1}97%{opacity:0.8}98.5%{opacity:1}99%{opacity:0.88}}
+
+.machine{
+  width:100%;max-width:900px;background:var(--panel);
+  border:1px solid var(--border);border-radius:4px;padding:22px;
+  box-shadow:0 0 60px rgba(140,60,255,0.05),inset 0 0 80px rgba(0,0,0,0.5);
+  display:flex;flex-direction:column;gap:20px;
+}
+.lbl{
+  font-family:'Orbitron',sans-serif;font-size:0.56rem;letter-spacing:0.25em;
+  color:var(--text-dim);text-transform:uppercase;margin-bottom:10px;
+  border-left:2px solid var(--purple-dim);padding-left:7px;
+}
+
+/* POSUN KONTROLY */
+.shift-section{display:flex;flex-direction:column;gap:12px;}
+.shift-row{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;}
+.shift-btn{
+  background:transparent;border:1px solid var(--purple-dim);color:var(--purple);
+  font-family:'Orbitron',sans-serif;font-size:1rem;font-weight:700;
+  width:44px;height:44px;cursor:pointer;border-radius:3px;transition:all 0.12s;
+  display:flex;align-items:center;justify-content:center;
+}
+.shift-btn:hover{background:var(--purple-glow);border-color:var(--purple);box-shadow:0 0 14px var(--purple-glow);}
+.shift-btn:active{transform:scale(0.93);}
+.shift-display{
+  font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:900;
+  color:var(--purple);text-shadow:0 0 16px var(--purple);
+  min-width:80px;text-align:center;letter-spacing:0.1em;
+}
+.shift-label{color:var(--text-dim);font-size:0.65rem;letter-spacing:0.15em;text-align:center;}
+.shift-presets{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;}
+.preset-btn{
+  background:transparent;border:1px solid var(--border);color:var(--text-dim);
+  font-family:'Orbitron',sans-serif;font-size:0.55rem;letter-spacing:0.1em;
+  padding:5px 10px;cursor:pointer;border-radius:2px;transition:all 0.12s;
+}
+.preset-btn:hover{border-color:var(--purple-dim);color:var(--purple);}
+.preset-btn.active{border-color:var(--purple);color:var(--purple);background:var(--purple-glow);}
+
+/* ABECEDY */
+.alpha-section{overflow-x:auto;}
+.alpha-grid{
+  display:flex;flex-direction:column;gap:3px;
+  min-width:600px;
+}
+.alpha-row{
+  display:flex;gap:2px;
+}
+.alpha-cell{
+  flex:1;min-width:26px;height:36px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Share Tech Mono',monospace;font-size:0.8rem;
+  border:1px solid var(--border);border-radius:2px;
+  transition:all 0.15s;position:relative;
+}
+.alpha-cell.normal{background:#080510;color:var(--text-dim);}
+.alpha-cell.shifted{background:#0c0818;color:var(--purple);text-shadow:0 0 8px rgba(191,128,255,0.4);}
+.alpha-cell.highlight{
+  border-color:var(--purple) !important;
+  background:var(--purple-glow) !important;
+  color:var(--purple) !important;
+  text-shadow:0 0 12px var(--purple) !important;
+  box-shadow:0 0 10px var(--purple-glow);
+}
+.alpha-row-label{
+  font-family:'Orbitron',sans-serif;font-size:0.5rem;color:var(--text-dim);
+  width:60px;min-width:60px;display:flex;align-items:center;letter-spacing:0.1em;
+}
+.alpha-connector{
+  display:flex;gap:2px;padding:0 0 0 62px;
+}
+.alpha-connector-line{
+  flex:1;min-width:26px;height:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:0.55rem;color:var(--border);
+  transition:color 0.15s;
+}
+.alpha-connector-line.active{color:var(--purple-dim);}
+
+/* IO */
+.io-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.io-block{display:flex;flex-direction:column;gap:6px;}
+textarea{
+  background:#060408;border:1px solid var(--border);color:var(--purple);
+  font-family:'Share Tech Mono',monospace;font-size:0.95rem;
+  padding:9px 11px;border-radius:2px;outline:none;resize:vertical;
+  min-height:120px;line-height:1.8;width:100%;text-transform:uppercase;
+}
+textarea:focus{border-color:var(--purple);box-shadow:0 0 10px var(--purple-glow);}
+textarea::placeholder{color:var(--text-dim);}
+.output-box{
+  background:#060408;border:1px solid var(--purple-dim);color:var(--purple);
+  font-family:'Share Tech Mono',monospace;font-size:1rem;padding:9px 11px;
+  border-radius:2px;min-height:120px;line-height:1.8;letter-spacing:0.12em;
+  word-break:break-all;white-space:pre-wrap;
+  text-shadow:0 0 8px rgba(191,128,255,0.2);user-select:all;
+}
+
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{
+  background:transparent;border:1px solid var(--purple-dim);color:var(--purple);
+  font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:0.14em;
+  padding:9px 16px;cursor:pointer;border-radius:2px;transition:all 0.15s;text-transform:uppercase;
+}
+.btn:hover{background:var(--purple-glow);border-color:var(--purple);box-shadow:0 0 12px var(--purple-glow);}
+.btn.success{border-color:#aa66ff;color:#cc88ff;}
+.btn.success:hover{background:rgba(191,128,255,0.1);}
+.btn.danger{border-color:rgba(255,60,60,0.3);color:#ff6060;}
+.btn.danger:hover{background:rgba(255,60,60,0.08);border-color:#ff6060;}
+.btn.swap{border-color:#6644aa;color:#aa88dd;}
+
+.status-bar{
+  font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;
+  display:flex;gap:18px;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding-top:12px;
+}
+.status-bar span{color:var(--purple);}
+@media(max-width:600px){.io-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#8594; POSUN P&#205;SMEN</h1>
+  <div class="sub">CAESAR&#362;V CIFR &#8212; SUBSTITUCI&#205; &#352;IFRA</div>
+</header>
+
+<div class="machine">
+
+  <!-- POSUN -->
+  <div class="shift-section">
+    <div class="lbl">&#9656; Posun abecedy</div>
+    <div class="shift-row">
+      <button class="shift-btn" onclick="addShift(-5)">&#8722;5</button>
+      <button class="shift-btn" onclick="addShift(-1)">&#8722;</button>
+      <div>
+        <div class="shift-display" id="shiftDisplay">0</div>
+        <div class="shift-label">POSUN</div>
+      </div>
+      <button class="shift-btn" onclick="addShift(1)">+</button>
+      <button class="shift-btn" onclick="addShift(5)">+5</button>
+    </div>
+    <div class="shift-presets">
+      <button class="preset-btn" onclick="setShift(3)" id="pre3">ROT-3</button>
+      <button class="preset-btn" onclick="setShift(13)" id="pre13">ROT-13</button>
+      <button class="preset-btn" onclick="setShift(7)" id="pre7">ROT-7</button>
+      <button class="preset-btn" onclick="setShift(18)" id="pre18">ROT-18</button>
+      <button class="preset-btn" onclick="setShift(1)" id="pre1">ROT-1</button>
+    </div>
+  </div>
+
+  <!-- ABECEDY -->
+  <div class="alpha-section">
+    <div class="lbl">&#9656; Substituční tabulka</div>
+    <div class="alpha-grid">
+      <div style="display:flex;">
+        <div class="alpha-row-label">NORM&#193;LN&#205;</div>
+        <div class="alpha-row" id="rowNormal"></div>
+      </div>
+      <div class="alpha-connector" id="connectors"></div>
+      <div style="display:flex;">
+        <div class="alpha-row-label">POSUNUT&#193;</div>
+        <div class="alpha-row" id="rowShifted"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- IO -->
+  <div class="io-row">
+    <div class="io-block">
+      <div class="lbl">&#9656; Vstupn&#237; text</div>
+      <textarea id="inputArea" placeholder="Napi&#353;te zpr&#225;vu..." oninput="onInput()"></textarea>
+    </div>
+    <div class="io-block">
+      <div class="lbl">&#9656; V&#253;stup</div>
+      <div class="output-box" id="outputBox"></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-row">
+    <button class="btn swap" onclick="swapDirection()">&#8645; OBR&#193;TIT POSUN</button>
+    <button class="btn success" id="copyBtn" onclick="copyOutput()">&#10697; KOP&#205;ROVAT V&#221;STUP</button>
+    <button class="btn danger" onclick="clearAll()">&#10005; VYMAZAT</button>
+  </div>
+
+  <!-- STATUS -->
+  <div class="status-bar">
+    <div>POSUN: <span id="statShift">0</span></div>
+    <div>ZNAKY: <span id="statChars">0</span></div>
+  </div>
+
+</div>
+
+<script>
+var ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+var shift = 0;
+
+function mod(n, m) { return ((n % m) + m) % m; }
+
+function buildAlpha() {
+  var rowN = document.getElementById('rowNormal');
+  var rowS = document.getElementById('rowShifted');
+  var conn = document.getElementById('connectors');
+  rowN.innerHTML = '';
+  rowS.innerHTML = '';
+  conn.innerHTML = '';
+
+  for (var i = 0; i < 26; i++) {
+    var cn = document.createElement('div');
+    cn.className = 'alpha-cell normal';
+    cn.id = 'n' + i;
+    cn.textContent = ALPHA[i];
+    rowN.appendChild(cn);
+
+    var cs = document.createElement('div');
+    cs.className = 'alpha-cell shifted';
+    cs.id = 's' + i;
+    cs.textContent = ALPHA[mod(i + shift, 26)];
+    rowS.appendChild(cs);
+
+    var cc = document.createElement('div');
+    cc.className = 'alpha-connector-line';
+    cc.id = 'c' + i;
+    cc.textContent = '|';
+    conn.appendChild(cc);
+  }
+}
+
+function updateShiftDisplay() {
+  document.getElementById('shiftDisplay').textContent = (shift >= 0 ? '+' : '') + shift;
+  document.getElementById('statShift').textContent = (shift >= 0 ? '+' : '') + shift;
+
+  var presets = [1,3,7,13,18];
+  presets.forEach(function(p) {
+    var btn = document.getElementById('pre' + p);
+    if (btn) btn.classList.toggle('active', shift === p || shift === -p);
+  });
+}
+
+function addShift(delta) {
+  shift += delta;
+  // bez limitu — mod 26 se opakuje, ale zobrazujeme skutečnou hodnotu
+  // zobrazíme v rozsahu -25..+25 kvůli přehlednosti
+  buildAlpha();
+  updateShiftDisplay();
+  onInput();
+}
+
+function setShift(val) {
+  shift = val;
+  buildAlpha();
+  updateShiftDisplay();
+  onInput();
+}
+
+function swapDirection() {
+  shift = -shift;
+  buildAlpha();
+  updateShiftDisplay();
+  onInput();
+}
+
+function cipher(text) {
+  var result = '';
+  for (var i = 0; i < text.length; i++) {
+    var ch = text[i].toUpperCase();
+    var idx = ALPHA.indexOf(ch);
+    if (idx >= 0) {
+      result += ALPHA[mod(idx + shift, 26)];
+    } else {
+      result += text[i];
+    }
+  }
+  return result;
+}
+
+function highlightChars(text) {
+  for (var i = 0; i < 26; i++) {
+    document.getElementById('n' + i).classList.remove('highlight');
+    document.getElementById('s' + i).classList.remove('highlight');
+    document.getElementById('c' + i).classList.remove('highlight');
+    document.getElementById('c' + i).classList.remove('active');
+  }
+  var upper = text.toUpperCase();
+  var usedNormal = {};
+  var usedShifted = {};
+  for (var j = 0; j < upper.length; j++) {
+    var idx = ALPHA.indexOf(upper[j]);
+    if (idx < 0) continue;
+    var shiftedIdx = mod(idx + shift, 26);
+    usedNormal[idx] = true;
+    usedShifted[shiftedIdx] = true;
+  }
+  for (var k = 0; k < 26; k++) {
+    if (usedNormal[k]) {
+      document.getElementById('n' + k).classList.add('highlight');
+      document.getElementById('c' + k).classList.add('active');
+    }
+    if (usedShifted[k]) {
+      document.getElementById('s' + k).classList.add('highlight');
+    }
+  }
+}
+
+function onInput() {
+  var val = document.getElementById('inputArea').value;
+  var result = cipher(val);
+  document.getElementById('outputBox').textContent = result;
+  document.getElementById('statChars').textContent = val.replace(/\s/g,'').length;
+  highlightChars(val);
+}
+
+function copyOutput() {
+  var text = document.getElementById('outputBox').textContent;
+  var btn = document.getElementById('copyBtn');
+  var orig = btn.textContent;
+
+  function showDone() {
+    btn.textContent = '\u2713 ZKOP\u00cdROV\u00c1NO';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(showDone).catch(fallback);
+  } else { fallback(); }
+
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); showDone(); } catch(e){}
+    document.body.removeChild(ta);
+  }
+}
+
+function clearAll() {
+  document.getElementById('inputArea').value = '';
+  document.getElementById('outputBox').textContent = '';
+  document.getElementById('statChars').textContent = '0';
+  for (var i = 0; i < 26; i++) {
+    document.getElementById('n' + i).classList.remove('highlight');
+    document.getElementById('s' + i).classList.remove('highlight');
+    document.getElementById('c' + i).classList.remove('active');
+  }
+}
+
+buildAlpha();
+updateShiftDisplay();
+</script>
+</body>
+</html>
