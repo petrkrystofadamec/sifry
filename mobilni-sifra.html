@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOBILNÍ ŠIFRA</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#06080a; --panel:#0a0d10; --green:#00ff88; --green-dim:#008844;
+  --green-glow:rgba(0,255,136,0.15); --border:#0a2818; --text:#d8f8e8; --text-dim:#5aaa80;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.07) 0px,rgba(0,0,0,0.07) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;z-index:1000;
+}
+header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);width:100%;max-width:900px;}
+header h1{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:900;
+  color:var(--green);text-shadow:0 0 20px var(--green),0 0 50px rgba(0,255,136,0.3);
+  letter-spacing:0.3em;animation:flicker 9s infinite;
+}
+header .sub{color:var(--text-dim);font-size:0.7rem;letter-spacing:0.18em;margin-top:5px;}
+@keyframes flicker{0%,95%,100%{opacity:1}96%{opacity:0.82}97.5%{opacity:1}98.5%{opacity:0.9}}
+.machine{
+  width:100%;max-width:900px;background:var(--panel);
+  border:1px solid var(--border);border-radius:4px;padding:22px;
+  box-shadow:0 0 50px rgba(0,255,136,0.04),inset 0 0 80px rgba(0,0,0,0.5);
+  display:flex;flex-direction:column;gap:18px;
+}
+.lbl{
+  font-family:'Orbitron',sans-serif;font-size:0.56rem;letter-spacing:0.25em;
+  color:var(--text-dim);text-transform:uppercase;margin-bottom:9px;
+  border-left:2px solid var(--green-dim);padding-left:7px;
+}
+.keypad-section{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0;}
+.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:360px;margin:0 auto;}
+.key{
+  background:#060a06;border:1px solid var(--border);border-radius:6px;
+  padding:10px 6px;cursor:pointer;transition:all 0.12s;
+  display:flex;flex-direction:column;align-items:center;gap:3px;user-select:none;
+}
+.key:hover{border-color:var(--green-dim);background:rgba(0,255,136,0.05);}
+.key:active,.key.pressed{
+  border-color:var(--green);background:var(--green-glow);
+  box-shadow:0 0 18px var(--green-glow);transform:scale(0.96);
+}
+.key .num{font-family:'Orbitron',sans-serif;font-size:1.2rem;font-weight:700;color:var(--green);text-shadow:0 0 8px var(--green);line-height:1;}
+.key .letters{font-family:'Share Tech Mono',monospace;font-size:0.65rem;color:var(--text-dim);letter-spacing:0.12em;line-height:1;}
+.key.dim .num{color:#2a6040;text-shadow:none;}
+.key.dim .letters{color:#1a4030;}
+.key.dim{cursor:default;}
+.key.dim:hover{border-color:var(--border);background:#060a06;}
+.io-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.io-block{display:flex;flex-direction:column;gap:6px;}
+textarea{
+  background:#040804;border:1px solid var(--border);color:var(--green);
+  font-family:'Share Tech Mono',monospace;font-size:0.95rem;
+  padding:9px 11px;border-radius:2px;outline:none;resize:vertical;
+  min-height:110px;line-height:1.7;width:100%;text-transform:uppercase;
+}
+textarea:focus{border-color:var(--green);box-shadow:0 0 10px var(--green-glow);}
+textarea::placeholder{color:var(--text-dim);}
+.output-box{
+  background:#040804;border:1px solid var(--green-dim);color:var(--green);
+  font-family:'Share Tech Mono',monospace;font-size:1.05rem;padding:9px 11px;
+  border-radius:2px;min-height:110px;line-height:2;letter-spacing:0.15em;
+  word-break:break-all;white-space:pre-wrap;
+  text-shadow:0 0 8px rgba(0,255,136,0.2);user-select:all;
+}
+.legend{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px;}
+.legend-item{
+  background:#040804;border:1px solid var(--border);border-radius:3px;
+  padding:5px 8px;display:flex;align-items:center;gap:8px;font-size:0.7rem;
+}
+.legend-key{font-family:'Orbitron',sans-serif;color:var(--green);font-size:0.75rem;min-width:16px;text-align:center;}
+.legend-letters{color:var(--text-dim);letter-spacing:0.1em;}
+.legend-example{color:#3a7055;font-size:0.6rem;margin-left:auto;}
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{
+  background:transparent;border:1px solid var(--green-dim);color:var(--green);
+  font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:0.14em;
+  padding:9px 16px;cursor:pointer;border-radius:2px;transition:all 0.15s;text-transform:uppercase;
+}
+.btn:hover{background:var(--green-glow);border-color:var(--green);box-shadow:0 0 12px var(--green-glow);}
+.btn.success{border-color:#00cc66;color:#00ff88;}
+.btn.success:hover{background:rgba(0,255,136,0.08);border-color:#00ff88;}
+.btn.danger{border-color:rgba(255,60,60,0.3);color:#ff6060;}
+.btn.danger:hover{background:rgba(255,60,60,0.08);border-color:#ff6060;}
+.status-bar{
+  font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;
+  display:flex;gap:18px;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding-top:12px;
+}
+.status-bar span{color:var(--green);}
+@media(max-width:600px){.io-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>&#128241; MOBILN&#205; &#352;IFRA</h1>
+  <div class="sub">MULTITAP &#8212; KLASICK&#193; TLA&#268;&#205;TKOV&#193; KL&#193;VESNICE</div>
+</header>
+
+<div class="machine">
+
+
+  <div class="keypad-section">
+    <div class="lbl">&#9656; Kl&#225;vesnice &#8212; klikn&#283;te pro vlo&#382;en&#237; p&#237;smene</div>
+    <div class="keypad" id="keypad"></div>
+  </div>
+
+  <div>
+    <div class="lbl">&#9656; Legenda &#8212; po&#269;et stisk&#367; = p&#237;smeno</div>
+    <div class="legend" id="legend"></div>
+  </div>
+
+  <div id="encMode">
+    <div class="io-row">
+      <div class="io-block">
+        <div class="lbl">&#9656; Vstup &#8212; text nebo k&#243;d</div>
+        <textarea id="encInputArea" placeholder="Pi&#353;te text nebo k&#243;d (nap&#345;. 2 44 666 5)..." rows="5" oninput="onManualInput()"></textarea>
+      </div>
+      <div class="io-block">
+        <div class="lbl">&#9656; V&#253;stup</div>
+        <div class="output-box" id="encOutput"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls-row">
+    <button class="btn success" id="copyBtn" onclick="copyOutput()">&#10697; KOP&#205;ROVAT V&#221;STUP</button>
+    <button class="btn danger" onclick="clearAll()">&#10005; VYMAZAT</button>
+  </div>
+
+  <div class="status-bar">
+    <div>M&#211;D: <span id="statMode">&#352;IFROV&#193;N&#205;</span></div>
+    <div>ZNAKY: <span id="statChars">0</span></div>
+    <div>SKUPIN: <span id="statGroups">0</span></div>
+  </div>
+
+</div>
+
+<script>
+var KEYS = [
+  { num:'1', letters:[], dim:true,  special:'.,?!' },
+  { num:'2', letters:['A','B','C'] },
+  { num:'3', letters:['D','E','F'] },
+  { num:'4', letters:['G','H','I'] },
+  { num:'5', letters:['J','K','L'] },
+  { num:'6', letters:['M','N','O'] },
+  { num:'7', letters:['P','Q','R','S'] },
+  { num:'8', letters:['T','U','V'] },
+  { num:'9', letters:['W','X','Y','Z'] },
+  { num:'*', letters:[], dim:true,  special:'<-' },
+  { num:'0', letters:[' '], dim:true, special:'MEZERA' },
+  { num:'#', letters:[], dim:true,  special:'#' }
+];
+
+// CODE_MAP: "222" -> "C", "0" -> " "
+var CODE_MAP = {};
+KEYS.forEach(function(k) {
+  k.letters.forEach(function(l, i) {
+    CODE_MAP[Array(i+2).join(k.num)] = l;
+  });
+});
+CODE_MAP['0'] = ' ';
+
+// LETTER_MAP: "C" -> {key:"2", count:3}
+var LETTER_MAP = {};
+KEYS.forEach(function(k) {
+  k.letters.forEach(function(l, i) {
+    LETTER_MAP[l] = { key: k.num, count: i+1 };
+  });
+});
+
+var MULTITAP_DELAY = 800;
+var committed = [];
+var pending = '';
+var mtTimer = null;
+
+function mtPress(keyNum) {
+  flashKey(keyNum);
+  if (mtTimer) { clearTimeout(mtTimer); mtTimer = null; }
+
+  if (pending && pending[0] === keyNum) {
+    pending += keyNum;
+    var keyDef = null;
+    for (var i = 0; i < KEYS.length; i++) {
+      if (KEYS[i].num === keyNum) { keyDef = KEYS[i]; break; }
+    }
+    var maxLen = keyDef ? keyDef.letters.length : 1;
+    if (pending.length > maxLen) pending = keyNum;
+  } else {
+    if (pending) committed.push(pending);
+    pending = keyNum;
+  }
+
+  render();
+
+  mtTimer = setTimeout(function() {
+    committed.push(pending);
+    pending = '';
+    render();
+  }, MULTITAP_DELAY);
+}
+
+function mtFlush() {
+  if (mtTimer) { clearTimeout(mtTimer); mtTimer = null; }
+  if (pending) { committed.push(pending); pending = ''; }
+}
+
+function mtSpace() {
+  mtFlush();
+  committed.push('0');
+  render();
+}
+
+function mtBackspace() {
+  if (mtTimer) { clearTimeout(mtTimer); mtTimer = null; }
+  if (pending) {
+    pending = pending.slice(0, -1);
+    if (pending) {
+      mtTimer = setTimeout(function() {
+        committed.push(pending); pending = ''; render();
+      }, MULTITAP_DELAY);
+    }
+  } else {
+    committed.pop();
+  }
+  render();
+}
+
+function decodeGroups(groups) {
+  var result = '';
+  for (var i = 0; i < groups.length; i++) {
+    var l = CODE_MAP[groups[i]];
+    result += (l !== undefined) ? l : '?';
+  }
+  return result;
+}
+
+function render() {
+  var committedText = decodeGroups(committed);
+  var pendingLetter = pending ? (CODE_MAP[pending] || '') : '';
+  var fullText = committedText + pendingLetter;
+
+  document.getElementById('encInputArea').value = fullText;
+
+  var allGroups = pending ? committed.concat([pending]) : committed.slice();
+  document.getElementById('encOutput').textContent = allGroups.join(' ');
+
+  document.getElementById('statChars').textContent = fullText.replace(/\s/g, '').length;
+  document.getElementById('statGroups').textContent = committed.length + (pending ? 1 : 0);
+}
+
+function onManualInput() {
+  if (mtTimer) { clearTimeout(mtTimer); mtTimer = null; }
+  pending = '';
+  var raw = document.getElementById('encInputArea').value;
+
+  // Detekce: pokud vstup obsahuje pouze číslice, mezery a je oddělený mezerami = kód
+  var trimmed = raw.trim();
+  var isCode = trimmed.length > 0 && /^[\d\s]+$/.test(trimmed);
+
+  if (isCode) {
+    // DEŠIFROVÁNÍ
+    document.getElementById('statMode').textContent = 'DE\u0160IFROV\u00c1N\u00cd';
+    var result = decodeCode(trimmed);
+    document.getElementById('encOutput').textContent = result;
+    var groups = trimmed ? trimmed.split(/\s+/).length : 0;
+    document.getElementById('statChars').textContent = result.replace(/\s/g, '').length;
+    document.getElementById('statGroups').textContent = groups;
+    committed = [];
+  } else {
+    // ŠIFROVÁNÍ
+    document.getElementById('statMode').textContent = '\u0160IFROV\u00c1N\u00cd';
+    var text = raw.toUpperCase();
+    document.getElementById('encInputArea').value = text;
+    committed = [];
+    for (var i = 0; i < text.length; i++) {
+      var ch = text[i];
+      if (ch === ' ') { committed.push('0'); continue; }
+      var e = LETTER_MAP[ch];
+      if (e) committed.push(Array(e.count + 1).join(e.key));
+    }
+    document.getElementById('encOutput').textContent = committed.join(' ');
+    document.getElementById('statChars').textContent = text.replace(/\s/g, '').length;
+    document.getElementById('statGroups').textContent = committed.length;
+    if (text.length > 0) {
+      var last = text[text.length - 1];
+      var entry = (last === ' ') ? { key: '0' } : LETTER_MAP[last];
+      if (entry) flashKey(entry.key);
+    }
+  }
+}
+
+function buildKeypad() {
+  var kp = document.getElementById('keypad');
+  kp.innerHTML = '';
+  KEYS.forEach(function(k) {
+    var btn = document.createElement('button');
+    btn.className = 'key' + (k.dim ? ' dim' : '');
+    btn.dataset.keynum = k.num;
+    var lettersText = k.letters.length ? k.letters.join(' ') : (k.special || '');
+    btn.innerHTML = '<div class="num">' + k.num + '</div><div class="letters">' + lettersText + '</div>';
+
+    if (k.letters.length > 0 && k.num !== '0') {
+      (function(keyNum) {
+        btn.addEventListener('click', function() {
+          mtPress(keyNum);
+        });
+      })(k.num);
+    } else if (k.num === '0') {
+      btn.addEventListener('click', function() {
+        mtSpace();
+        flashKey('0');
+      });
+    } else if (k.num === '*') {
+      btn.addEventListener('click', function() {
+        mtBackspace();
+        flashKey('*');
+      });
+    }
+
+    kp.appendChild(btn);
+  });
+}
+
+function flashKey(keyNum) {
+  var btns = document.querySelectorAll('.key');
+  btns.forEach(function(btn) {
+    if (btn.dataset.keynum === keyNum) {
+      btn.classList.add('pressed');
+      setTimeout(function() { btn.classList.remove('pressed'); }, 250);
+    }
+  });
+}
+
+function buildLegend() {
+  var leg = document.getElementById('legend');
+  leg.innerHTML = '';
+  KEYS.filter(function(k) { return k.letters.length > 0 && k.num !== '0'; }).forEach(function(k) {
+    var item = document.createElement('div');
+    item.className = 'legend-item';
+    var ex = k.letters.map(function(l, i) {
+      return Array(i+2).join(k.num) + '=' + l;
+    }).join('  ');
+    item.innerHTML = '<span class="legend-key">' + k.num + '</span>'
+      + '<span class="legend-letters">' + k.letters.join(' ') + '</span>'
+      + '<span class="legend-example">' + ex + '</span>';
+    leg.appendChild(item);
+  });
+  var sp = document.createElement('div');
+  sp.className = 'legend-item';
+  sp.innerHTML = '<span class="legend-key" style="color:var(--text-dim)">0</span>'
+    + '<span class="legend-letters">MEZERA</span>'
+    + '<span class="legend-example">0 = mezera</span>';
+  leg.appendChild(sp);
+}
+
+function decodeCode(code) {
+  if (!code.trim()) return '';
+  var groups = code.trim().split(/\s+/);
+  var result = '';
+  for (var i = 0; i < groups.length; i++) {
+    var l = CODE_MAP[groups[i]];
+    result += (l !== undefined) ? l : '?';
+  }
+  return result;
+}
+
+function copyOutput() {
+  var text = document.getElementById('encOutput').textContent;
+  var btn = document.getElementById('copyBtn');
+  var orig = btn.textContent;
+
+  function showDone() {
+    btn.textContent = '\u2713 ZKOP\u00cdROV\u00c1NO';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  }
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(showDone).catch(function() { fallback(); });
+  } else {
+    fallback();
+  }
+
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand('copy'); showDone(); } catch(e) {}
+    document.body.removeChild(ta);
+  }
+}
+
+function clearAll() {
+  if (mtTimer) { clearTimeout(mtTimer); mtTimer = null; }
+  committed = []; pending = '';
+  document.getElementById('encInputArea').value = '';
+  document.getElementById('encOutput').textContent = '';
+  document.getElementById('decInputArea').value = '';
+  document.getElementById('decOutput').textContent = '';
+  document.getElementById('statChars').textContent = '0';
+  document.getElementById('statGroups').textContent = '0';
+}
+
+buildKeypad();
+buildLegend();
+</script>
+</body>
+</html>
