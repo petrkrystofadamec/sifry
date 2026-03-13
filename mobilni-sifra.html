@@ -159,7 +159,7 @@ var KEYS = [
   { num:'8', letters:['T','U','V'] },
   { num:'9', letters:['W','X','Y','Z'] },
   { num:'*', letters:[], dim:true,  special:'<-' },
-  { num:'0', letters:[' '], dim:true, special:'MEZERA' },
+  { num:'0', letters:[' '], dim:false, special:'MEZERA' },
   { num:'#', letters:[], dim:true,  special:'#' }
 ];
 
@@ -327,7 +327,6 @@ function buildKeypad() {
     } else if (k.num === '0') {
       btn.addEventListener('click', function() {
         mtSpace();
-        flashKey('0');
       });
     } else if (k.num === '*') {
       btn.addEventListener('click', function() {
