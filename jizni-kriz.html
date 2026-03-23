@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JIŽNÍ KŘÍŽ — Šifra</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#06080a; --panel:#0a0d10; --cyan:#00e5ff; --cyan-dim:#007a8a;
+  --cyan-glow:rgba(0,229,255,0.13); --border:#082830; --text:#c8f0f8; --text-dim:#305060;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;
+  background-image:
+    radial-gradient(ellipse at 20% 10%,rgba(0,229,255,0.05) 0%,transparent 50%),
+    radial-gradient(ellipse at 80% 90%,rgba(0,180,200,0.03) 0%,transparent 50%);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.07) 0px,rgba(0,0,0,0.07) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;z-index:1000;
+}
+header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);width:100%;max-width:1100px;}
+header h1{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:900;
+  color:var(--cyan);text-shadow:0 0 20px var(--cyan),0 0 50px rgba(0,229,255,0.3);
+  letter-spacing:0.3em;animation:flicker 9s infinite;
+}
+header .sub{color:var(--text-dim);font-size:0.7rem;letter-spacing:0.18em;margin-top:5px;}
+@keyframes flicker{0%,95%,100%{opacity:1}96%{opacity:0.82}97.5%{opacity:1}98.5%{opacity:0.9}}
+.machine{
+  width:100%;max-width:1100px;background:var(--panel);
+  border:1px solid var(--border);border-radius:4px;padding:22px;
+  box-shadow:0 0 50px rgba(0,229,255,0.04),inset 0 0 80px rgba(0,0,0,0.5);
+  display:flex;flex-direction:column;gap:18px;
+}
+.lbl{
+  font-family:'Orbitron',sans-serif;font-size:0.56rem;letter-spacing:0.25em;
+  color:var(--text-dim);text-transform:uppercase;margin-bottom:9px;
+  border-left:2px solid var(--cyan-dim);padding-left:7px;
+}
+.ref-section{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0;}
+.ref-wrap{display:flex;justify-content:center;}
+.io-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.io-block{display:flex;flex-direction:column;gap:6px;}
+textarea{
+  background:#040a0c;border:1px solid var(--border);color:var(--cyan);
+  font-family:'Share Tech Mono',monospace;font-size:0.95rem;
+  padding:9px 11px;border-radius:2px;outline:none;resize:vertical;
+  min-height:100px;line-height:1.7;text-transform:uppercase;width:100%;
+}
+textarea:focus{border-color:var(--cyan);box-shadow:0 0 10px var(--cyan-glow);}
+textarea::placeholder{color:var(--text-dim);}
+.output-wrap{
+  background:#040a0c;border:1px solid var(--cyan-dim);
+  border-radius:2px;min-height:100px;padding:8px;
+  display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start;
+  user-select:all;
+}
+.slider-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.slider-row input[type=range]{
+  -webkit-appearance:none;height:3px;background:var(--border);border-radius:2px;outline:none;flex:1;min-width:120px;
+}
+.slider-row input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:14px;height:14px;border-radius:50%;
+  background:var(--cyan);cursor:pointer;box-shadow:0 0 6px var(--cyan);
+}
+.slider-val{font-family:'Orbitron',sans-serif;font-size:0.65rem;color:var(--cyan);min-width:60px;}
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{
+  background:transparent;border:1px solid var(--cyan-dim);color:var(--cyan);
+  font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:0.14em;
+  padding:9px 16px;cursor:pointer;border-radius:2px;transition:all 0.15s;text-transform:uppercase;
+}
+.btn:hover{background:var(--cyan-glow);border-color:var(--cyan);box-shadow:0 0 12px var(--cyan-glow);}
+.btn.success{border-color:#00bbcc;color:#00e5ff;}
+.btn.danger{border-color:rgba(255,60,60,0.3);color:#ff6060;}
+.btn.danger:hover{background:rgba(255,60,60,0.08);}
+.status-bar{
+  font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;
+  display:flex;gap:18px;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding-top:12px;
+}
+.status-bar span{color:var(--cyan);}
+@media(max-width:600px){.io-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>✦ JI&#381;N&#205; K&#344;&#205;&#381;</h1>
+  <div class="sub">SUBSTITUČNÍ ŠIFRA — MŘÍŽKOVÁ TABULKA SE ZDVOJENOU ČÁROU</div>
+</header>
+
+<div class="machine">
+
+  <!-- REF TABLE -->
+  <div class="ref-section">
+    <div class="lbl">▸ Referenční tabulka — klikněte pro vložení písmene</div>
+    <div class="ref-wrap">
+      <canvas id="refCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- IO -->
+  <div class="io-row">
+    <div class="io-block">
+      <div class="lbl">▸ Vstupní text</div>
+      <textarea id="inputArea" placeholder="Napište text..." oninput="onInput()"></textarea>
+    </div>
+    <div class="io-block">
+      <div class="lbl">▸ Zašifrovaný výstup</div>
+      <div class="output-wrap" id="outputWrap"></div>
+    </div>
+  </div>
+
+  <!-- SLIDER -->
+  <div>
+    <div class="lbl">▸ Počet znaků na řádek</div>
+    <div class="slider-row">
+      <input type="range" id="perRowSlider" min="3" max="20" value="8" oninput="onSlider()">
+      <div class="slider-val" id="perRowVal">8 znaků/řádek</div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-row">
+    <button class="btn success" id="copyBtn" onclick="copyOutput()">&#10697; KOPÍROVAT VÝSTUP</button>
+    <button class="btn success" onclick="downloadPNG()">&#8659; STÁHNOUT PNG</button>
+    <button class="btn danger" onclick="clearAll()">&#10005; VYMAZAT</button>
+  </div>
+
+  <div class="status-bar">
+    <div>ZNAKY: <span id="statChars">0</span></div>
+    <div>SYMBOLY: <span id="statSyms">0</span></div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// TABULKA JIŽNÍHO KŘÍŽE
+// 3 řady × 4 sloupce
+// Sloupec 0: 3 písmena, sloupce 1-3: 2 písmena
+// Zdvojená čára mezi sloupci 1 a 2 (index 1|2)
+//
+// Buňka [řada][sloupec] → písmena
+// Stěny buňky: top, right, bottom, left
+// Zdvojená pravá stěna sloupce 1 a levá stěna sloupce 2
+//
+// Pozice tečky: 0=vlevo, 1=uprostřed (pouze sloupec 0, 3 písmena), 2=vpravo
+// =============================================
+
+var CELLS = [
+  // řada 0
+  { letters:['A','B','C'], row:0, col:0 },
+  { letters:['D','E'],     row:0, col:1 },
+  { letters:['F','G'],     row:0, col:2 },
+  { letters:['H','Ch'],    row:0, col:3 },
+  // řada 1
+  { letters:['I','J','K'], row:1, col:0 },
+  { letters:['L','M'],     row:1, col:1 },
+  { letters:['N','O'],     row:1, col:2 },
+  { letters:['P','Q'],     row:1, col:3 },
+  // řada 2
+  { letters:['R','S','T'], row:2, col:0 },
+  { letters:['U','V'],     row:2, col:1 },
+  { letters:['W','X'],     row:2, col:2 },
+  { letters:['Y','Z'],     row:2, col:3 },
+];
+
+// Encode map: písmeno → {cellIdx, pos}
+// pos: 0=vlevo, 1=střed, 2=vpravo
+var ENCODE_MAP = {};
+CELLS.forEach(function(cell, ci) {
+  cell.letters.forEach(function(l, pi) {
+    // Pro 3 písmena: A=vlevo(0), B=střed(1), C=vpravo(2)
+    // Pro 2 písmena: X=vlevo(0), Y=vpravo(2)
+    var pos;
+    if (cell.letters.length === 3) {
+      pos = pi; // 0,1,2
+    } else {
+      pos = pi === 0 ? 0 : 2; // 0 nebo 2
+    }
+    ENCODE_MAP[l.toUpperCase()] = { cellIdx: ci, pos: pos };
+  });
+});
+
+// Stěny buňky [top, right, bottom, left]
+// Celá tabulka: vnější okraj = zed, vnitřní = sdílená
+// řady: 0-2, sloupce: 0-3
+// Vnější stěny: top pro row==0, bottom pro row==2, left pro col==0, right pro col==3
+// Zdvojená: right pro col==1 a left pro col==2
+
+function getWalls(row, col) {
+  return {
+    top:    true,  // vždy — každá buňka má horní stěnu
+    bottom: true,  // vždy
+    left:   true,  // vždy
+    right:  true,  // vždy
+    // zdvojená pravá strana (platí pro col==1)
+    rightDouble: col === 1,
+    // zdvojená levá strana (platí pro col==2)
+    leftDouble: col === 2,
+  };
+}
+
+// Interní stěny (které jsou sdílené) vs. vnější
+// Pro výstupní symbol: zobrazíme pouze stěny které OBKLOPUJÍ danou buňku
+// a jsou relevantní (vnější nebo vnitřní)
+// Logika jako Velký kříž — zobrazujeme stěny buňky
+// Ale: pokud je buňka na okraji, ta stěna je vykreslena
+// Pokud je vnitřní stěna (shared), také vykreslena
+
+var perRow = 8;
+var encodeResult = []; // pole {cellIdx, pos, letter}
+var refHitAreas = [];
+var blinkTO = null;
+
+// =============================================
+// DRAW REF TABLE (canvas)
+// =============================================
+var CELL_W = 70, CELL_H = 55, PAD = 12;
+var DOUBLE_GAP = 10; // větší mezera mezi dvojitou čárou
+var COLS = 4, ROWS = 3;
+
+function refCanvasWidth() {
+  // col 0 + col 1 + double_gap + col 2 + col 3 + padding
+  return PAD*2 + CELL_W * COLS + DOUBLE_GAP;
+}
+function refCanvasHeight() {
+  return PAD*2 + CELL_H * ROWS;
+}
+
+function colX(col) {
+  // X pozice levého okraje sloupce
+  if (col === 0) return PAD;
+  if (col === 1) return PAD + CELL_W;
+  if (col === 2) return PAD + CELL_W*2 + DOUBLE_GAP;
+  return PAD + CELL_W*3 + DOUBLE_GAP;
+}
+
+function drawRefTable(hlCellIdx, hlPos) {
+  var canvas = document.getElementById('refCanvas');
+  var W = refCanvasWidth(), H = refCanvasHeight();
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#040a0c';
+  ctx.fillRect(0, 0, W, H);
+
+  refHitAreas = [];
+
+  CELLS.forEach(function(cell, ci) {
+    var x = colX(cell.col);
+    var y = PAD + cell.row * CELL_H;
+    var w = CELL_W;
+    var h = CELL_H;
+    var isHL = hlCellIdx === ci;
+
+    // background
+    ctx.fillStyle = isHL ? 'rgba(0,229,255,0.08)' : '#060c10';
+    ctx.fillRect(x, y, w, h);
+
+    // Stěny — jen vnitřní čáry (bez krajních vodorovných i svislých)
+    var lw = 2;
+    ctx.lineWidth = lw;
+    ctx.strokeStyle = isHL ? '#00e5ff' : '#00aacc';
+    ctx.lineCap = 'square';
+
+    // Vodorovné — jen mezi řadami (ne nad řadou 0, ne pod řadou 2)
+    if (cell.row > 0) {
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x+w, y); ctx.stroke();
+    }
+    if (cell.row < 2) {
+      ctx.beginPath(); ctx.moveTo(x, y+h); ctx.lineTo(x+w, y+h); ctx.stroke();
+    }
+
+    // Svislé — jen vnitřní jednoduché (ne krajní, ne zdvojená)
+    // col 1 a 3 kreslí svoji levou čáru, col 0 nic (col 1 ji nakreslí za něj)
+    if (cell.col === 1 || cell.col === 3) {
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y+h); ctx.stroke();
+    }
+
+    // Zdvojená prostřední — dvě těsné čáry (jako úzký obdélník)
+    var DG = 4;
+    if (cell.col === 1) {
+      ctx.beginPath(); ctx.moveTo(x+w,    y); ctx.lineTo(x+w,    y+h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x+w+DG, y); ctx.lineTo(x+w+DG, y+h); ctx.stroke();
+    }
+    if (cell.col === 2) {
+      ctx.beginPath(); ctx.moveTo(x-DG, y); ctx.lineTo(x-DG, y+h); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x,    y); ctx.lineTo(x,    y+h); ctx.stroke();
+    }
+
+    // písmena — bez teček, větší font, vycentrovaná
+    var nLetters = cell.letters.length;
+    cell.letters.forEach(function(letter, pi) {
+      var pos = (nLetters === 3) ? pi : (pi === 0 ? 0 : 2);
+      var tx;
+      if (nLetters === 3) {
+        tx = x + (pos + 0.5) * (w / 3);
+      } else {
+        tx = pos === 0 ? x + w * 0.28 : x + w * 0.72;
+      }
+      var ty = y + h * 0.5;
+
+      var isHLDot = isHL && hlPos === pos;
+
+      ctx.font = 'bold 15px Orbitron,monospace';
+      ctx.fillStyle = isHLDot ? '#ffffff' : (isHL ? '#80f0ff' : '#00e5ff');
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(letter, tx, ty);
+
+      // hit area
+      var hitX, hitW;
+      if (nLetters === 3) {
+        hitX = x + pos * (w/3);
+        hitW = w/3;
+      } else {
+        hitX = pos === 0 ? x : x + w/2;
+        hitW = w/2;
+      }
+      refHitAreas.push({ cellIdx: ci, pos: pos, letter: letter, x: hitX, y: y, w: hitW, h: h });
+    });
+  });
+}
+
+// =============================================
+// CLICK na ref tabulce
+// =============================================
+document.getElementById('refCanvas').addEventListener('click', function(e) {
+  var rect = this.getBoundingClientRect();
+  var scaleX = (this.width / (window.devicePixelRatio||1)) / rect.width;
+  var scaleY = (this.height / (window.devicePixelRatio||1)) / rect.height;
+  var mx = (e.clientX - rect.left) * scaleX;
+  var my = (e.clientY - rect.top) * scaleY;
+  for (var i = 0; i < refHitAreas.length; i++) {
+    var a = refHitAreas[i];
+    if (mx >= a.x && mx <= a.x+a.w && my >= a.y && my <= a.y+a.h) {
+      document.getElementById('inputArea').value += a.letter;
+      onInput();
+      return;
+    }
+  }
+});
+
+// =============================================
+// DRAW OUTPUT SYMBOL (na bílém canvas)
+// =============================================
+function drawOutputSym(ctx, cx, cy, sz, cellIdx, pos) {
+  var cell = CELLS[cellIdx];
+  var col = cell.col;
+  var row = cell.row;
+  var pad = sz * 0.14;
+  var x0 = cx - sz/2 + pad;
+  var y0 = cy - sz/2 + pad;
+  var x1 = cx + sz/2 - pad;
+  var y1 = cy + sz/2 - pad;
+  var lw = Math.max(1.5, sz * 0.07);
+  var dg = sz * 0.10; // double gap
+
+  ctx.save();
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'square';
+
+  var H = y1 - y0;
+  var DG = Math.max(2, sz * 0.08); // mezera mezi dvojitými čárami
+
+  // Vodorovné — jen mezi řadami (ne krajní)
+  if (row > 0) { ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y0); ctx.stroke(); }
+  if (row < 2) { ctx.beginPath(); ctx.moveTo(x0, y1); ctx.lineTo(x1, y1); ctx.stroke(); }
+
+  // Svislé — jednoduché vnitřní (col 1 a 3 mají levou čáru, col 0 má pravou)
+  if (col === 0) {
+    ctx.beginPath(); ctx.moveTo(x1, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  }
+  if (col === 1 || col === 3) {
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0, y1); ctx.stroke();
+  }
+
+  // Zdvojená prostřední — dvě těsné čáry
+  if (col === 1) {
+    ctx.beginPath(); ctx.moveTo(x1,    y0); ctx.lineTo(x1,    y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x1+DG, y0); ctx.lineTo(x1+DG, y1); ctx.stroke();
+  }
+  if (col === 2) {
+    ctx.beginPath(); ctx.moveTo(x0-DG, y0); ctx.lineTo(x0-DG, y1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x0,    y0); ctx.lineTo(x0,    y1); ctx.stroke();
+  }
+
+  // tečka
+  var dotR = Math.max(1.5, sz * 0.09);
+  var nLetters = cell.letters.length;
+  var dotX;
+  if (nLetters === 3) {
+    // třetiny
+    dotX = x0 + (pos + 0.5) * ((x1-x0)/3);
+  } else {
+    dotX = pos === 0 ? x0 + (x1-x0)*0.28 : x0 + (x1-x0)*0.72;
+  }
+  var dotY = cy;
+
+  ctx.beginPath();
+  ctx.arc(dotX, dotY, dotR, 0, Math.PI*2);
+  ctx.fillStyle = '#000';
+  ctx.fill();
+
+  ctx.restore();
+}
+
+// =============================================
+// ENCODE
+// =============================================
+function encode(text) {
+  var upper = text.toUpperCase();
+  var result = [];
+  var i = 0;
+  while (i < upper.length) {
+    // CH jako digraf
+    if (upper[i] === 'C' && i+1 < upper.length && upper[i+1] === 'H') {
+      var e = ENCODE_MAP['CH'];
+      if (e) result.push({ cellIdx: e.cellIdx, pos: e.pos, letter: 'Ch' });
+      i += 2;
+      continue;
+    }
+    var ch = upper[i];
+    var e2 = ENCODE_MAP[ch];
+    if (e2) result.push({ cellIdx: e2.cellIdx, pos: e2.pos, letter: ch });
+    i++;
+  }
+  return result;
+}
+
+// =============================================
+// RENDER OUTPUT (canvas na bílém pozadí)
+// =============================================
+var SYM_SIZE = 44;
+var SYM_GAP = 8;
+var LINE_GAP = 14;
+var OUT_PAD = 16;
+
+function renderOutput() {
+  var wrap = document.getElementById('outputWrap');
+  wrap.innerHTML = '';
+  if (encodeResult.length === 0) return;
+
+  var rows = [];
+  for (var i = 0; i < encodeResult.length; i += perRow) {
+    rows.push(encodeResult.slice(i, i + perRow));
+  }
+
+  var maxCols = 0;
+  rows.forEach(function(r) { if (r.length > maxCols) maxCols = r.length; });
+
+  var W = OUT_PAD*2 + maxCols * (SYM_SIZE + SYM_GAP) - SYM_GAP;
+  var H = OUT_PAD*2 + rows.length * (SYM_SIZE + LINE_GAP) - LINE_GAP;
+
+  var canvas = document.createElement('canvas');
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  canvas.style.background = '#fff';
+  canvas.style.borderRadius = '2px';
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+
+  rows.forEach(function(row, ri) {
+    row.forEach(function(sym, si) {
+      var cx = OUT_PAD + si*(SYM_SIZE+SYM_GAP) + SYM_SIZE/2;
+      var cy = OUT_PAD + ri*(SYM_SIZE+LINE_GAP) + SYM_SIZE/2;
+      drawOutputSym(ctx, cx, cy, SYM_SIZE, sym.cellIdx, sym.pos);
+    });
+  });
+
+  wrap.appendChild(canvas);
+}
+
+// =============================================
+// BLINK REF
+// =============================================
+function blinkRef(cellIdx, pos) {
+  if (blinkTO) clearTimeout(blinkTO);
+  drawRefTable(cellIdx, pos);
+  blinkTO = setTimeout(function() {
+    drawRefTable(-1, -1);
+  }, 350);
+}
+
+// =============================================
+// INPUT
+// =============================================
+function onInput() {
+  var val = document.getElementById('inputArea').value;
+  encodeResult = encode(val);
+  renderOutput();
+
+  document.getElementById('statChars').textContent = val.replace(/\s/g,'').length;
+  document.getElementById('statSyms').textContent = encodeResult.length;
+
+  if (encodeResult.length > 0) {
+    var last = encodeResult[encodeResult.length-1];
+    blinkRef(last.cellIdx, last.pos);
+  } else {
+    drawRefTable(-1, -1);
+  }
+}
+
+function onSlider() {
+  perRow = parseInt(document.getElementById('perRowSlider').value);
+  document.getElementById('perRowVal').textContent = perRow + ' znaků/řádek';
+  renderOutput();
+}
+
+// =============================================
+// DOWNLOAD PNG
+// =============================================
+function downloadPNG() {
+  var wrap = document.getElementById('outputWrap');
+  var canvas = wrap.querySelector('canvas');
+  if (!canvas) return;
+  canvas.toBlob(function(blob) {
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.download = 'jizni-kriz.png';
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  });
+}
+
+// =============================================
+// COPY
+// =============================================
+function copyOutput() {
+  var btn = document.getElementById('copyBtn');
+  var orig = btn.textContent;
+  // Zkopírujeme zakódovaný text jako písmena (pro sdílení)
+  var text = encodeResult.map(function(s) { return s.letter; }).join('');
+  function showDone() {
+    btn.textContent = '✓ ZKOPÍROVÁNO';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(showDone).catch(fallback);
+  } else { fallback(); }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); showDone(); } catch(e){}
+    document.body.removeChild(ta);
+  }
+}
+
+function clearAll() {
+  document.getElementById('inputArea').value = '';
+  document.getElementById('outputWrap').innerHTML = '';
+  document.getElementById('statChars').textContent = '0';
+  document.getElementById('statSyms').textContent = '0';
+  encodeResult = [];
+  drawRefTable(-1, -1);
+}
+
+// =============================================
+// INIT
+// =============================================
+drawRefTable(-1, -1);
+</script>
+</body>
+</html>
