@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEBREJŠTINA — Šifra</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#08060a; --panel:#0d0a12; --red:#ff4466; --red-dim:#882233;
+  --red-glow:rgba(255,68,102,0.13); --border:#2a0a14; --text:#f0c8d0; --text-dim:#804050;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+  background:var(--bg);color:var(--text);font-family:'Share Tech Mono',monospace;
+  min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px;
+  background-image:
+    radial-gradient(ellipse at 20% 10%,rgba(255,68,102,0.06) 0%,transparent 55%),
+    radial-gradient(ellipse at 80% 90%,rgba(200,40,70,0.04) 0%,transparent 55%);
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,rgba(0,0,0,0.08) 0px,rgba(0,0,0,0.08) 1px,transparent 1px,transparent 3px);
+  pointer-events:none;z-index:1000;
+}
+header{text-align:center;margin-bottom:24px;padding-bottom:16px;border-bottom:1px solid var(--border);width:100%;max-width:1000px;}
+header h1{
+  font-family:'Orbitron',sans-serif;font-size:clamp(1.4rem,4vw,2.4rem);font-weight:900;
+  color:var(--red);text-shadow:0 0 20px var(--red),0 0 50px rgba(255,68,102,0.3);
+  letter-spacing:0.3em;animation:flicker 9s infinite;
+}
+header .sub{color:var(--text-dim);font-size:0.7rem;letter-spacing:0.18em;margin-top:5px;}
+@keyframes flicker{0%,95%,100%{opacity:1}96%{opacity:0.82}97.5%{opacity:1}98.5%{opacity:0.9}}
+.machine{
+  width:100%;max-width:1000px;background:var(--panel);
+  border:1px solid var(--border);border-radius:4px;padding:22px;
+  box-shadow:0 0 50px rgba(255,68,102,0.04),inset 0 0 80px rgba(0,0,0,0.5);
+  display:flex;flex-direction:column;gap:18px;
+}
+.lbl{
+  font-family:'Orbitron',sans-serif;font-size:0.56rem;letter-spacing:0.25em;
+  color:var(--text-dim);text-transform:uppercase;margin-bottom:9px;
+  border-left:2px solid var(--red-dim);padding-left:7px;
+}
+.ref-section{border-top:1px solid var(--border);border-bottom:1px solid var(--border);padding:16px 0;}
+.ref-tables{display:flex;gap:24px;justify-content:center;flex-wrap:wrap;align-items:flex-end;}
+.ref-block{display:flex;flex-direction:column;align-items:center;gap:6px;}
+.ref-block-label{font-family:'Orbitron',sans-serif;font-size:0.52rem;color:var(--text-dim);letter-spacing:0.15em;}
+.perrow-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.perrow-row span{font-size:0.65rem;color:var(--text-dim);}
+.perrow-row input[type=range]{accent-color:var(--red);width:140px;cursor:pointer;}
+.io-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.io-block{display:flex;flex-direction:column;gap:6px;}
+textarea{
+  background:#080408;border:1px solid var(--border);color:var(--red);
+  font-family:'Share Tech Mono',monospace;font-size:0.95rem;
+  padding:9px 11px;border-radius:2px;outline:none;resize:vertical;
+  min-height:100px;line-height:1.7;text-transform:uppercase;width:100%;
+}
+textarea:focus{border-color:var(--red);box-shadow:0 0 10px var(--red-glow);}
+textarea::placeholder{color:var(--text-dim);}
+.output-wrap{
+  background:#080408;border:1px solid var(--red-dim);
+  border-radius:2px;min-height:100px;padding:8px;
+  display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start;
+}
+.controls-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+.btn{
+  background:transparent;border:1px solid var(--red-dim);color:var(--red);
+  font-family:'Orbitron',sans-serif;font-size:0.58rem;letter-spacing:0.14em;
+  padding:9px 16px;cursor:pointer;border-radius:2px;transition:all 0.15s;text-transform:uppercase;
+}
+.btn:hover{background:var(--red-glow);border-color:var(--red);box-shadow:0 0 12px var(--red-glow);}
+.btn.success{border-color:#cc2244;color:#ff4466;}
+.btn.danger{border-color:rgba(255,60,60,0.3);color:#ff6060;}
+.btn.danger:hover{background:rgba(255,60,60,0.08);}
+.status-bar{
+  font-size:0.6rem;color:var(--text-dim);letter-spacing:0.08em;
+  display:flex;gap:18px;flex-wrap:wrap;
+  border-top:1px solid var(--border);padding-top:12px;
+}
+.status-bar span{color:var(--red);}
+@media(max-width:600px){.io-row{grid-template-columns:1fr;}.ref-tables{gap:14px;}}
+</style>
+</head>
+<body>
+<header>
+  <h1>✡ HEBREJŠTINA</h1>
+  <div class="sub">MŘÍŽKOVÁ ŠIFRA — TŘI IDENTICKÉ TABULKY — TEČKY URČUJÍ TABULKU</div>
+</header>
+
+<div class="machine">
+
+  <!-- REF TABLES -->
+  <div class="ref-section">
+    <div class="lbl">▸ Referenční tabulky — klikněte pro vložení písmene</div>
+    <div class="ref-tables">
+      <div class="ref-block">
+        <div class="ref-block-label">TABULKA 1 — BEZ TEČKY</div>
+        <canvas id="refGrid1"></canvas>
+      </div>
+      <div class="ref-block">
+        <div class="ref-block-label">TABULKA 2 — JEDNA TEČKA</div>
+        <canvas id="refGrid2"></canvas>
+      </div>
+      <div class="ref-block">
+        <div class="ref-block-label">TABULKA 3 — DVĚ TEČKY</div>
+        <canvas id="refGrid3"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDER -->
+  <div>
+    <div class="lbl">▸ Znaků na řádek ve výstupu</div>
+    <div class="perrow-row">
+      <span>MÉNĚ</span>
+      <input type="range" id="perRowSlider" min="3" max="20" value="10" oninput="updatePerRow()">
+      <span>VÍCE</span>
+      <span id="perRowVal">10 znaků/řádek</span>
+    </div>
+  </div>
+
+  <!-- IO -->
+  <div class="io-row">
+    <div class="io-block">
+      <div class="lbl">▸ Vstupní text</div>
+      <textarea id="inputArea" placeholder="Napište text..." oninput="onInput()"></textarea>
+    </div>
+    <div class="io-block">
+      <div class="lbl">▸ Zašifrovaný výstup</div>
+      <div class="output-wrap" id="outputWrap"></div>
+    </div>
+  </div>
+
+  <!-- CONTROLS -->
+  <div class="controls-row">
+    <button class="btn success" id="copyBtn" onclick="copyOutput()">&#10697; KOPÍROVAT VÝSTUP</button>
+    <button class="btn success" onclick="downloadPNG()">&#8659; STÁHNOUT PNG</button>
+    <button class="btn danger" onclick="clearAll()">&#10005; VYMAZAT</button>
+  </div>
+
+  <div class="status-bar">
+    <div>ZNAKY: <span id="statChars">0</span></div>
+    <div>SYMBOLY: <span id="statSyms">0</span></div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// TABULKY
+// 3 identické mřížky 3×3
+// Tabulka 1 (dots=0): A B C / D E F / G H Ch
+// Tabulka 2 (dots=1): I J K / L M N / O P Q
+// Tabulka 3 (dots=2): R S T / U V W / X Y Z
+// =============================================
+var TABLES = [
+  ['A','B','C','D','E','F','G','H','Ch'],
+  ['I','J','K','L','M','N','O','P','Q'],
+  ['R','S','T','U','V','W','X','Y','Z']
+];
+
+// GRID_WALLS [top, right, bottom, left] pro každou z 9 buněk
+var GRID_WALLS = [
+  [false, true,  true,  false], // 0 (row0,col0) — top-left
+  [false, true,  true,  true ], // 1 (row0,col1)
+  [false, false, true,  true ], // 2 (row0,col2) — top-right
+  [true,  true,  true,  false], // 3 (row1,col0)
+  [true,  true,  true,  true ], // 4 (row1,col1) — střed
+  [true,  false, true,  true ], // 5 (row1,col2)
+  [true,  true,  false, false], // 6 (row2,col0) — bottom-left
+  [true,  true,  false, true ], // 7 (row2,col1)
+  [true,  false, false, true ], // 8 (row2,col2) — bottom-right
+];
+
+// ENCODE MAP: písmeno → {tableIdx, cellIdx}
+var ENCODE_MAP = {};
+TABLES.forEach(function(table, ti) {
+  table.forEach(function(letter, ci) {
+    ENCODE_MAP[letter.toUpperCase()] = { tableIdx: ti, cellIdx: ci };
+  });
+});
+
+var perRow = 10;
+var encodeResult = [];
+var refHitAreas = {};
+var blinkTO = null;
+
+// =============================================
+// DRAW REF GRID (3×3 tabulka)
+// tableIdx: 0,1,2 → počet teček dole
+// hlIdx: zvýrazněná buňka (-1 = žádná)
+// =============================================
+function drawRefGrid(canvasId, tableIdx, hlIdx) {
+  var canvas = document.getElementById(canvasId);
+  var SZ = 56, GAP = 2, PAD = 8;
+  var DOT_AREA = 20; // vždy stejná výška — tabulka 1 jen nevykreslí tečky
+  var cellW = SZ + GAP, cellH = SZ + GAP;
+  var W = PAD*2 + cellW*3 - GAP;
+  var H = PAD*2 + cellH*3 - GAP + DOT_AREA;
+
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  ctx.fillStyle = '#080408';
+  ctx.fillRect(0, 0, W, H);
+
+  if (!refHitAreas[canvasId]) refHitAreas[canvasId] = [];
+  refHitAreas[canvasId] = [];
+
+  for (var i = 0; i < 9; i++) {
+    var col = i % 3, row = Math.floor(i / 3);
+    var bx = PAD + col * cellW;
+    var by = PAD + row * cellH;
+    var cx = bx + SZ/2;
+    var cy = by + SZ/2;
+    var isHL = hlIdx === i;
+    var walls = GRID_WALLS[i];
+
+    // buňka pozadí
+    ctx.fillStyle = isHL ? 'rgba(255,68,102,0.12)' : '#0a0408';
+    ctx.fillRect(bx, by, SZ, SZ);
+
+    // stěny
+    ctx.strokeStyle = isHL ? '#ff4466' : '#cc2244';
+    ctx.lineWidth = isHL ? 2.5 : 1.8;
+    ctx.lineCap = 'square';
+    ctx.lineJoin = 'miter';
+    ctx.beginPath();
+    if (walls[0]) { ctx.moveTo(bx, by);    ctx.lineTo(bx+SZ, by);    }
+    if (walls[1]) { ctx.moveTo(bx+SZ, by); ctx.lineTo(bx+SZ, by+SZ); }
+    if (walls[2]) { ctx.moveTo(bx, by+SZ); ctx.lineTo(bx+SZ, by+SZ); }
+    if (walls[3]) { ctx.moveTo(bx, by);    ctx.lineTo(bx, by+SZ);    }
+    ctx.stroke();
+
+    // písmeno
+    var letter = TABLES[tableIdx][i];
+    ctx.font = 'bold 13px Orbitron,monospace';
+    ctx.fillStyle = isHL ? '#ffffff' : '#ff4466';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(letter, cx, cy);
+
+    refHitAreas[canvasId].push({ idx: i, x: bx, y: by, w: SZ, h: SZ });
+  }
+
+  // tečky pod tabulkou
+  if (tableIdx > 0) {
+    var dotY = H - DOT_AREA/2;
+    var totalDotW = tableIdx * 10 + (tableIdx-1) * 6;
+    var dotStartX = W/2 - totalDotW/2 + 5;
+    for (var d = 0; d < tableIdx; d++) {
+      ctx.beginPath();
+      ctx.arc(dotStartX + d * 16, dotY, 5, 0, Math.PI*2);
+      ctx.fillStyle = '#ff4466';
+      ctx.fill();
+    }
+  }
+}
+
+// =============================================
+// CLICK HANDLERS
+// =============================================
+function setupClick(canvasId, tableIdx) {
+  document.getElementById(canvasId).addEventListener('click', function(e) {
+    var rect = this.getBoundingClientRect();
+    var scaleX = (this.width / (window.devicePixelRatio||1)) / rect.width;
+    var scaleY = (this.height / (window.devicePixelRatio||1)) / rect.height;
+    var mx = (e.clientX - rect.left) * scaleX;
+    var my = (e.clientY - rect.top) * scaleY;
+    var areas = refHitAreas[canvasId] || [];
+    for (var i = 0; i < areas.length; i++) {
+      var a = areas[i];
+      if (mx >= a.x && mx <= a.x+a.w && my >= a.y && my <= a.y+a.h) {
+        var letter = TABLES[tableIdx][a.idx];
+        document.getElementById('inputArea').value += letter;
+        onInput();
+        return;
+      }
+    }
+  });
+}
+
+// =============================================
+// DRAW OUTPUT SYMBOL (bílé plátno)
+// =============================================
+function drawOutputSym(ctx, cx, cy, sz, cellIdx, tableIdx) {
+  var pad = sz * 0.14;
+  var x0 = cx - sz/2 + pad, y0 = cy - sz/2 + pad;
+  var x1 = cx + sz/2 - pad, y1 = cy + sz/2 - pad;
+  var lw = Math.max(1.5, sz * 0.075);
+  var walls = GRID_WALLS[cellIdx];
+
+  ctx.save();
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = lw;
+  ctx.lineCap = 'square';
+  ctx.lineJoin = 'miter';
+  ctx.beginPath();
+  if (walls[0]) { ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); }
+  if (walls[1]) { ctx.moveTo(x1,y0); ctx.lineTo(x1,y1); }
+  if (walls[2]) { ctx.moveTo(x0,y1); ctx.lineTo(x1,y1); }
+  if (walls[3]) { ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); }
+  ctx.stroke();
+
+  // tečky uprostřed symbolu
+  var dots = tableIdx; // 0,1,2
+  if (dots > 0) {
+    var dotR = Math.max(2, sz * 0.1);
+    var gap = dotR * 3.2;
+    var totalW = (dots-1) * gap;
+    var startX = cx - totalW/2;
+    var dotY = cy; // přesně uprostřed symbolu
+    for (var d = 0; d < dots; d++) {
+      ctx.beginPath();
+      ctx.arc(startX + d * gap, dotY, dotR, 0, Math.PI*2);
+      ctx.fillStyle = '#000';
+      ctx.fill();
+    }
+  }
+
+  ctx.restore();
+}
+
+// =============================================
+// ENCODE
+// =============================================
+function encode(text) {
+  var upper = text.toUpperCase();
+  var result = [];
+  var i = 0;
+  while (i < upper.length) {
+    if (upper[i] === ' ') {
+      result.push({ tableIdx: -1, cellIdx: -1, letter: ' ' }); // mezera
+      i++; continue;
+    }
+    if (upper[i] === 'C' && i+1 < upper.length && upper[i+1] === 'H') {
+      var e = ENCODE_MAP['CH'];
+      if (e) result.push({ tableIdx: e.tableIdx, cellIdx: e.cellIdx, letter: 'Ch' });
+      i += 2; continue;
+    }
+    var ch = upper[i];
+    var e2 = ENCODE_MAP[ch];
+    if (e2) result.push({ tableIdx: e2.tableIdx, cellIdx: e2.cellIdx, letter: ch });
+    i++;
+  }
+  return result;
+}
+
+// =============================================
+// RENDER OUTPUT
+// =============================================
+var SYM_SZ = 44, SYM_GAP = 10, LINE_GAP = 18, OUT_PAD = 14;
+
+function renderOutput() {
+  var wrap = document.getElementById('outputWrap');
+  wrap.innerHTML = '';
+  if (encodeResult.length === 0) return;
+
+  var rows = [];
+  for (var i = 0; i < encodeResult.length; i += perRow) {
+    rows.push(encodeResult.slice(i, i + perRow));
+  }
+  var maxCols = 0;
+  rows.forEach(function(r) { if (r.length > maxCols) maxCols = r.length; });
+
+  // výška symbolu + místo pro tečky pod symbolem
+  var symH = SYM_SZ + 10; // extra prostor pro tečky
+  var W = OUT_PAD*2 + maxCols * (SYM_SZ + SYM_GAP) - SYM_GAP;
+  var H = OUT_PAD*2 + rows.length * (symH + LINE_GAP) - LINE_GAP;
+
+  var canvas = document.createElement('canvas');
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+  canvas.style.background = '#fff';
+  canvas.style.borderRadius = '2px';
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, W, H);
+
+  rows.forEach(function(row, ri) {
+    row.forEach(function(sym, si) {
+      if (sym.tableIdx === -1) return; // mezera — prázdné místo
+      var cx = OUT_PAD + si*(SYM_SZ+SYM_GAP) + SYM_SZ/2;
+      var cy = OUT_PAD + ri*(symH+LINE_GAP) + SYM_SZ/2;
+      drawOutputSym(ctx, cx, cy, SYM_SZ, sym.cellIdx, sym.tableIdx);
+    });
+  });
+
+  wrap.appendChild(canvas);
+}
+
+// =============================================
+// BLINK
+// =============================================
+function redrawAll(hlTable, hlIdx) {
+  drawRefGrid('refGrid1', 0, hlTable === 0 ? hlIdx : -1);
+  drawRefGrid('refGrid2', 1, hlTable === 1 ? hlIdx : -1);
+  drawRefGrid('refGrid3', 2, hlTable === 2 ? hlIdx : -1);
+}
+
+function blinkRef(tableIdx, cellIdx) {
+  if (blinkTO) clearTimeout(blinkTO);
+  redrawAll(tableIdx, cellIdx);
+  blinkTO = setTimeout(function() { redrawAll(-1, -1); }, 350);
+}
+
+// =============================================
+// INPUT
+// =============================================
+function onInput() {
+  var val = document.getElementById('inputArea').value;
+  encodeResult = encode(val);
+  renderOutput();
+  document.getElementById('statChars').textContent = val.replace(/\s/g,'').length;
+  document.getElementById('statSyms').textContent = encodeResult.length;
+  if (encodeResult.length > 0) {
+    var last = encodeResult[encodeResult.length-1];
+    blinkRef(last.tableIdx, last.cellIdx);
+  } else {
+    redrawAll(-1, -1);
+  }
+}
+
+function updatePerRow() {
+  perRow = parseInt(document.getElementById('perRowSlider').value);
+  document.getElementById('perRowVal').textContent = perRow + ' znaků/řádek';
+  renderOutput();
+}
+
+// =============================================
+// DOWNLOAD PNG
+// =============================================
+function downloadPNG() {
+  if (encodeResult.length === 0) return;
+
+  // Překresli výstup na nový čistý canvas a stáhni
+  var rows = [];
+  for (var i = 0; i < encodeResult.length; i += perRow) {
+    rows.push(encodeResult.slice(i, i + perRow));
+  }
+  var maxCols = 0;
+  rows.forEach(function(r) { if (r.length > maxCols) maxCols = r.length; });
+
+  var symH = SYM_SZ + 10;
+  var W = OUT_PAD*2 + maxCols * (SYM_SZ + SYM_GAP) - SYM_GAP;
+  var H = OUT_PAD*2 + rows.length * (symH + LINE_GAP) - LINE_GAP;
+
+  var canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  var ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  rows.forEach(function(row, ri) {
+    row.forEach(function(sym, si) {
+      if (sym.tableIdx === -1) return;
+      var cx = OUT_PAD + si*(SYM_SZ+SYM_GAP) + SYM_SZ/2;
+      var cy = OUT_PAD + ri*(symH+LINE_GAP) + SYM_SZ/2;
+      drawOutputSym(ctx, cx, cy, SYM_SZ, sym.cellIdx, sym.tableIdx);
+    });
+  });
+
+  var url = canvas.toDataURL('image/png');
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'hebrejstina-sifra.png';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// =============================================
+// COPY
+// =============================================
+function copyOutput() {
+  var btn = document.getElementById('copyBtn');
+  var orig = btn.textContent;
+  var text = encodeResult.map(function(s) { return s.letter; }).join('');
+  function showDone() {
+    btn.textContent = '✓ ZKOPÍROVÁNO';
+    setTimeout(function() { btn.textContent = orig; }, 1500);
+  }
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(text).then(showDone).catch(fallback);
+  } else { fallback(); }
+  function fallback() {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    try { document.execCommand('copy'); showDone(); } catch(e){}
+    document.body.removeChild(ta);
+  }
+}
+
+function clearAll() {
+  document.getElementById('inputArea').value = '';
+  document.getElementById('outputWrap').innerHTML = '';
+  document.getElementById('statChars').textContent = '0';
+  document.getElementById('statSyms').textContent = '0';
+  encodeResult = [];
+  redrawAll(-1, -1);
+}
+
+// =============================================
+// INIT
+// =============================================
+setupClick('refGrid1', 0);
+setupClick('refGrid2', 1);
+setupClick('refGrid3', 2);
+window.addEventListener('load', function() {
+  drawRefGrid('refGrid1', 0, -1);
+  drawRefGrid('refGrid2', 1, -1);
+  drawRefGrid('refGrid3', 2, -1);
+});
+</script>
+</body>
+</html>
