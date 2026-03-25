@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tabulková Transpozice</title>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e14;
+  --bg2: #111820;
+  --bg3: #1a2332;
+  --accent: #00d4ff;
+  --accent2: #0088aa;
+  --accent3: #004466;
+  --text: #c8e8f0;
+  --dim: #5a8090;
+  --border: #1e3a4a;
+  --cell-border: #2a4a5a;
+  --active: #00ffcc;
+  --path-color: #00d4ff;
+  --glow: 0 0 12px rgba(0,212,255,0.4);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+/* Scanline overlay */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+  pointer-events: none;
+  z-index: 999;
+}
+
+h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 1.6em;
+  color: var(--accent);
+  text-shadow: var(--glow);
+  letter-spacing: 4px;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.subtitle {
+  text-align: center;
+  color: var(--dim);
+  font-size: 0.8em;
+  letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 750px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.panel {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 16px;
+}
+
+.panel-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.75em;
+  color: var(--accent);
+  letter-spacing: 3px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin-bottom: 12px;
+}
+
+label { font-size: 0.8em; color: var(--dim); display: block; margin-bottom: 4px; }
+
+input[type=text], textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1em;
+  padding: 8px 10px;
+  border-radius: 2px;
+  outline: none;
+  resize: vertical;
+}
+input[type=text]:focus, textarea:focus {
+  border-color: var(--accent2);
+  box-shadow: inset 0 0 8px rgba(0,212,255,0.1);
+}
+
+.row { display: flex; gap: 10px; margin-bottom: 10px; align-items: flex-end; }
+.row > * { flex: 1; }
+
+.btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.65em;
+  letter-spacing: 2px;
+  padding: 9px 14px;
+  border: 1px solid var(--accent2);
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.btn:hover {
+  background: var(--accent3);
+  box-shadow: var(--glow);
+}
+.btn.active, .btn:active {
+  background: var(--accent2);
+  color: #000;
+}
+.btn.danger { border-color: #aa3333; color: #ff6666; }
+.btn.danger:hover { background: #331111; }
+.btn.success { border-color: #33aa55; color: #66ff88; }
+.btn.success:hover { background: #113322; }
+
+/* Grid size selector */
+.size-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.size-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6em;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+  letter-spacing: 1px;
+}
+.size-btn:hover { border-color: var(--accent2); color: var(--accent); }
+.size-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent3); }
+
+/* Preset paths */
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.preset-btn {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75em;
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+}
+.preset-btn:hover { border-color: var(--accent2); color: var(--text); }
+.preset-btn.active { border-color: var(--active); color: var(--active); background: rgba(0,255,204,0.07); }
+
+/* TABLE CANVAS AREA */
+#tableWrap {
+  position: relative;
+  margin: 12px 0;
+  user-select: none;
+}
+
+#tableCanvas {
+  display: block;
+  cursor: crosshair;
+  border: 1px solid var(--border);
+}
+
+.canvas-hint {
+  font-size: 0.7em;
+  color: var(--dim);
+  margin-top: 4px;
+  letter-spacing: 1px;
+}
+
+/* Path order display */
+#pathOrder {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 0.75em;
+  color: var(--accent);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 6px 10px;
+  border-radius: 2px;
+  min-height: 30px;
+  margin-bottom: 8px;
+  word-break: break-all;
+  letter-spacing: 1px;
+}
+
+/* Output */
+#output {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 1.1em;
+  color: var(--active);
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  padding: 10px;
+  border-radius: 2px;
+  min-height: 60px;
+  word-break: break-all;
+  letter-spacing: 3px;
+  line-height: 1.8;
+  margin-bottom: 8px;
+}
+
+.sep { height: 1px; background: var(--border); margin: 10px 0; }
+
+/* Divider lines controls */
+.divider-controls { margin-bottom: 10px; }
+.divider-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.divider-tag {
+  font-size: 0.7em;
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: 'Share Tech Mono', monospace;
+}
+.divider-tag:hover { border-color: #aa3333; color: #ff6666; }
+.divider-tag.active-div { border-color: #ffaa00; color: #ffaa00; }
+
+/* Info panel */
+.info-box {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent2);
+  padding: 8px 12px;
+  font-size: 0.75em;
+  color: var(--dim);
+  margin-bottom: 10px;
+  line-height: 1.6;
+}
+
+/* Mode toggle */
+.mode-row { display: flex; gap: 6px; margin-bottom: 10px; }
+.mode-btn {
+  flex: 1;
+  font-family: 'Orbitron', sans-serif;
+  font-size: 0.6em;
+  letter-spacing: 2px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.15s;
+  text-align: center;
+}
+.mode-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent3); }
+
+.full-width { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+
+<h1>TABULKOVÁ TRANSPOZICE</h1>
+<p class="subtitle">TRANSPOSITION CIPHER // PATH ROUTING SYSTEM</p>
+
+<div class="container">
+
+  <!-- LEFT: Config + Table -->
+  <div class="panel">
+    <div class="panel-title">// KONFIGURACE TABULKY</div>
+
+    <label>VELIKOST TABULKY</label>
+    <div class="size-row" id="sizeRow"></div>
+
+    <label>VLASTNÍ (sloupce × řádky)</label>
+    <div class="row">
+      <div>
+        <input type="text" id="colsInput" value="6" style="text-align:center;" placeholder="sl">
+      </div>
+      <div>
+        <input type="text" id="rowsInput" value="4" style="text-align:center;" placeholder="ř">
+      </div>
+      <button class="btn" onclick="applyCustomSize()">POUŽÍT</button>
+    </div>
+
+    <div class="sep"></div>
+    <div class="panel-title">// VZORY PRŮCHODU</div>
+
+    <div class="preset-row" id="presetRow"></div>
+
+    <div class="sep"></div>
+    <div class="panel-title">// EDITOR CESTY</div>
+
+    <div class="info-box">
+      Klikej na buňky v tabulce níže — čísla určují pořadí čtení.<br>
+      Nebo zvol vzor výše. Tlačítko <strong>+ČÁRA</strong> přidá oddělovací linii.
+    </div>
+
+    <div id="tableWrap">
+      <canvas id="tableCanvas"></canvas>
+    </div>
+    <div class="canvas-hint">▶ klikej buňky pro vlastní cestu &nbsp;|&nbsp; ❌ = odstraní poslední</div>
+
+    <div style="margin: 8px 0; display: flex; gap: 6px; flex-wrap:wrap;">
+      <button class="btn" onclick="undoPath()">← ZPĚT</button>
+      <button class="btn danger" onclick="clearPath()">VYMAZAT CESTU</button>
+    </div>
+
+    <label>POŘADÍ BUNĚK (cesta)</label>
+    <div id="pathOrder">—</div>
+
+
+  </div>
+
+  <!-- RIGHT: Text + Output -->
+  <div class="panel">
+    <div class="panel-title">// VSTUPNÍ TEXT</div>
+
+    <label>TEXT <span id="textCountHint" style="float:right; font-size:0.9em;"></span></label>
+    <textarea id="inputText" rows="4" placeholder="Zadej text...">MkoooAnžHn</textarea>
+
+    <div class="sep"></div>
+    <div class="panel-title">// REŽIM</div>
+    <div class="mode-row">
+      <button class="mode-btn active" id="modeEnc" onclick="setMode('enc')">ŠIFROVAT</button>
+      <button class="mode-btn" id="modeDec" onclick="setMode('dec')">DEŠIFROVAT</button>
+    </div>
+
+    <label>VÝPLŇOVÝ ZNAK (pro prázdné buňky)</label>
+    <div class="row">
+      <input type="text" id="fillChar" value="X" maxlength="1" style="text-align:center; max-width:60px; flex:0 0 60px;">
+      <div style="flex:1; font-size:0.75em; color:var(--dim); line-height:1.4;">
+        Použit pokud text nevyplní celou tabulku
+      </div>
+    </div>
+
+    <button class="btn" onclick="processCipher()" style="width:100%; font-size:0.75em; margin-bottom:10px;">
+      ▶ SPUSTIT TRANSPOZICI
+    </button>
+
+    <div class="sep"></div>
+    <div class="panel-title">// VÝSTUP</div>
+    <div id="output">—</div>
+
+    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+      <button class="btn" onclick="copyOutput()">KOPÍROVAT</button>
+      <button class="btn danger" onclick="clearAll()">VYMAZAT VŠE</button>
+    </div>
+
+    <div class="sep"></div>
+    <div class="panel-title">// VIZUALIZACE TABULKY</div>
+    <canvas id="vizCanvas" style="border:1px solid var(--border); max-width:100%; display:block; background:#ffffff;"></canvas>
+    <div style="margin-top:6px; display:flex; gap:6px; align-items:center; flex-wrap:wrap;">
+      <button class="btn" onclick="downloadViz()">STÁHNOUT PNG</button>
+      <button class="btn" id="gridToggleBtn" onclick="toggleGridInPng()" style="border-color:#ffaa00; color:#ffaa00;">MŘÍŽKA: ZAP</button>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+var cols = 6, rows = 4;
+var pathOrder = [];       // array of {c, r} in click order
+var dividerLines = [];    // array of {type:'h'|'v', idx}
+var mode = 'enc';
+var hoveredCell = null;
+
+// ============================================================
+// PRESETS
+// ============================================================
+// Cik-cak had TAM a ZPET:
+// Tam  (zleva doprava): sudý sloupec = r0, lichý sloupec = r1
+// Zpet (zprava doleva): sudý sloupec = r1, lichý sloupec = r0  (opačný řádek)
+// Pro 4+ řádků: zpracováváme po párech (r0=2k, r1=2k+1), každý pár tam+zpět.
+// Příklad 6×2:  (0,0)→(1,1)→(2,0)→(3,1)→(4,0)→(5,1)→(5,0)→(4,1)→(3,0)→(2,1)→(1,0)→(0,1)
+function presetCikCakExact() {
+  var p = [];
+  var visited = {};
+  var key = function(c, r) { return c + ',' + r; };
+
+  var numPairs = Math.ceil(rows / 2);
+  for (var k = 0; k < numPairs; k++) {
+    var r0 = k * 2;
+    var r1 = k * 2 + 1;
+    if (r1 >= rows) r1 = r0; // lichý počet řádků
+
+    // TAM: zleva doprava — sudý sloupec → r0, lichý → r1
+    for (var c = 0; c < cols; c++) {
+      var r = (c % 2 === 0) ? r0 : r1;
+      var ka = key(c, r);
+      if (!visited[ka]) { visited[ka] = true; p.push({c:c, r:r}); }
+    }
+
+    // ZPET: zprava doleva — sudý sloupec → r1, lichý → r0
+    for (var c = cols - 1; c >= 0; c--) {
+      var r = (c % 2 === 0) ? r1 : r0;
+      var ka = key(c, r);
+      if (!visited[ka]) { visited[ka] = true; p.push({c:c, r:r}); }
+    }
+  }
+
+  // Doplň případně nenavštívené buňky
+  for (var r = 0; r < rows; r++)
+    for (var c = 0; c < cols; c++) {
+      var k2 = key(c, r);
+      if (!visited[k2]) { visited[k2] = true; p.push({c:c, r:r}); }
+    }
+
+  return p;
+}
+
+
+var PRESETS = [
+  { name: 'Had ↕', icon: '⇅', fn: presetSnakeH },
+  { name: 'Had ↔', icon: '⇄', fn: presetSnakeV },
+  { name: 'Spirála', icon: '◎', fn: presetSpiral },
+  { name: 'Vlny →', icon: '≋', fn: presetZigzagH },
+  { name: 'Diag ↘', icon: '↘', fn: presetDiagDown },
+  { name: 'Sloupce ↓', icon: '↓↓', fn: presetColumns },
+  { name: 'Cik-cak ⟺', icon: '⟺', fn: presetCikCakExact },
+  { name: 'Vlastní', icon: '✎', fn: null },
+];
+
+var currentPreset = 0;
+
+function presetSnakeH() {
+  var p = [];
+  for (var r = 0; r < rows; r++) {
+    if (r % 2 === 0) {
+      for (var c = 0; c < cols; c++) p.push({c:c, r:r});
+    } else {
+      for (var c = cols-1; c >= 0; c--) p.push({c:c, r:r});
+    }
+  }
+  return p;
+}
+
+function presetSnakeV() {
+  var p = [];
+  for (var c = 0; c < cols; c++) {
+    if (c % 2 === 0) {
+      for (var r = 0; r < rows; r++) p.push({c:c, r:r});
+    } else {
+      for (var r = rows-1; r >= 0; r--) p.push({c:c, r:r});
+    }
+  }
+  return p;
+}
+
+function presetZigzagH() {
+  // Diagonal waves — read along diagonals top-left to bottom-right
+  var p = [];
+  var visited = {};
+  var key = function(c,r){ return c+','+r; };
+  // collect all diagonals
+  for (var d = 0; d < cols+rows-1; d++) {
+    for (var r = 0; r < rows; r++) {
+      var c = d - r;
+      if (c >= 0 && c < cols && !visited[key(c,r)]) {
+        visited[key(c,r)] = true;
+        p.push({c:c, r:r});
+      }
+    }
+  }
+  return p;
+}
+
+function presetDiagDown() {
+  var p = [];
+  var visited = {};
+  var key = function(c,r){ return c+','+r; };
+  for (var d = 0; d < cols+rows-1; d++) {
+    var cells = [];
+    for (var r = 0; r < rows; r++) {
+      var c = d - r;
+      if (c >= 0 && c < cols) cells.push({c:c, r:r});
+    }
+    if (d % 2 === 1) cells.reverse();
+    for (var i=0;i<cells.length;i++) {
+      var cc = cells[i];
+      if (!visited[key(cc.c,cc.r)]) {
+        visited[key(cc.c,cc.r)] = true;
+        p.push(cc);
+      }
+    }
+  }
+  return p;
+}
+
+function presetSpiral() {
+  var p = [];
+  var visited = Array.from({length:rows}, function(){ return new Array(cols).fill(false); });
+  var r=0, c=0;
+  var dr=[0,1,0,-1], dc=[1,0,-1,0], dir=0;
+  for (var i=0;i<rows*cols;i++) {
+    p.push({c:c, r:r});
+    visited[r][c] = true;
+    var nr = r+dr[dir], nc = c+dc[dir];
+    if (nr<0||nr>=rows||nc<0||nc>=cols||visited[nr][nc]) {
+      dir=(dir+1)%4;
+      nr=r+dr[dir]; nc=c+dc[dir];
+    }
+    r=nr; c=nc;
+  }
+  return p;
+}
+
+function presetColumns() {
+  var p = [];
+  for (var c=0;c<cols;c++)
+    for (var r=0;r<rows;r++)
+      p.push({c:c, r:r});
+  return p;
+}
+
+// ============================================================
+// CANVAS SETUP
+// ============================================================
+var canvas = document.getElementById('tableCanvas');
+var ctx = canvas.getContext('2d');
+var CELL = 44, PAD = 4;
+var DPR = window.devicePixelRatio || 1;
+
+function resizeCanvas() {
+  var w = (cols * CELL) + PAD*2;
+  var h = (rows * CELL) + PAD*2;
+  canvas.style.width = w + 'px';
+  canvas.style.height = h + 'px';
+  canvas.width = w * DPR;
+  canvas.height = h * DPR;
+  ctx.scale(DPR, DPR);
+}
+
+function cellFromXY(x, y) {
+  var c = Math.floor((x - PAD) / CELL);
+  var r = Math.floor((y - PAD) / CELL);
+  if (c < 0 || c >= cols || r < 0 || r >= rows) return null;
+  return {c:c, r:r};
+}
+
+canvas.addEventListener('mousemove', function(e) {
+  var rect = canvas.getBoundingClientRect();
+  var x = e.clientX - rect.left, y = e.clientY - rect.top;
+  hoveredCell = cellFromXY(x, y);
+  drawTable();
+});
+canvas.addEventListener('mouseleave', function() { hoveredCell = null; drawTable(); });
+canvas.addEventListener('click', function(e) {
+  var rect = canvas.getBoundingClientRect();
+  var x = e.clientX - rect.left, y = e.clientY - rect.top;
+  var cell = cellFromXY(x, y);
+  if (!cell) return;
+  // Toggle: if already in path, remove it and all after
+  var idx = pathOrder.findIndex(function(p){ return p.c===cell.c && p.r===cell.r; });
+  if (idx >= 0) {
+    pathOrder = pathOrder.slice(0, idx);
+  } else {
+    pathOrder.push(cell);
+  }
+  currentPreset = 7; // custom
+  updatePresetUI();
+  drawTable();
+  updatePathDisplay();
+});
+
+// ============================================================
+// DRAW TABLE
+// ============================================================
+function drawTable() {
+  ctx.clearRect(0, 0, canvas.width / DPR, canvas.height / DPR);
+
+  var accentColor = '#00d4ff';
+  var activeColor = '#00ffcc';
+  var dimColor = '#2a4a5a';
+  var bgColor = '#111820';
+  var bg3 = '#1a2332';
+
+  // Background
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, cols*CELL+PAD*2, rows*CELL+PAD*2);
+
+  // Order map
+  var orderMap = {};
+  for (var i=0; i<pathOrder.length; i++) {
+    orderMap[pathOrder[i].c + ',' + pathOrder[i].r] = i+1;
+  }
+
+  // Cells
+  for (var r=0; r<rows; r++) {
+    for (var c=0; c<cols; c++) {
+      var x = PAD + c*CELL, y = PAD + r*CELL;
+      var key = c+','+r;
+      var order = orderMap[key];
+      var isHovered = hoveredCell && hoveredCell.c===c && hoveredCell.r===r;
+
+      // Cell background
+      if (order) {
+        ctx.fillStyle = 'rgba(0,212,255,0.08)';
+      } else if (isHovered) {
+        ctx.fillStyle = 'rgba(0,212,255,0.05)';
+      } else {
+        ctx.fillStyle = bg3;
+      }
+      ctx.fillRect(x+1, y+1, CELL-2, CELL-2);
+
+      // Cell border
+      ctx.strokeStyle = order ? '#1e5a7a' : dimColor;
+      ctx.lineWidth = order ? 1.5 : 1;
+      ctx.strokeRect(x+0.5, y+0.5, CELL-1, CELL-1);
+
+      // Order number
+      if (order) {
+        var pct = (order-1) / Math.max(pathOrder.length-1, 1);
+        // Color gradient from cyan to green
+        var r2 = 0;
+        var g2 = Math.round(212 + (255-212)*pct);
+        var b2 = Math.round(255 + (0-255)*pct);
+        ctx.fillStyle = 'rgb('+r2+','+g2+','+b2+')';
+        ctx.font = 'bold ' + (CELL > 36 ? 14 : 11) + 'px "Share Tech Mono"';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(order, x + CELL/2, y + CELL/2);
+      }
+    }
+  }
+
+  // Draw path arrows
+  if (pathOrder.length > 1) {
+    ctx.strokeStyle = 'rgba(0,212,255,0.35)';
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    for (var i=0; i<pathOrder.length; i++) {
+      var px = PAD + pathOrder[i].c*CELL + CELL/2;
+      var py = PAD + pathOrder[i].r*CELL + CELL/2;
+      if (i===0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Draw divider lines
+  for (var d=0; d<dividerLines.length; d++) {
+    var dl = dividerLines[d];
+    ctx.strokeStyle = '#ffaa00';
+    ctx.lineWidth = 2;
+    if (dl.type === 'h') {
+      // horizontal line after row idx
+      var ly = PAD + (dl.idx+1)*CELL;
+      ctx.beginPath();
+      ctx.moveTo(PAD, ly);
+      ctx.lineTo(PAD + cols*CELL, ly);
+      ctx.stroke();
+    } else {
+      // vertical line after col idx
+      var lx = PAD + (dl.idx+1)*CELL;
+      ctx.beginPath();
+      ctx.moveTo(lx, PAD);
+      ctx.lineTo(lx, PAD + rows*CELL);
+      ctx.stroke();
+    }
+  }
+
+  // Start marker
+  if (pathOrder.length > 0) {
+    var sx = PAD + pathOrder[0].c*CELL + 6;
+    var sy = PAD + pathOrder[0].r*CELL + 6;
+    ctx.fillStyle = activeColor;
+    ctx.beginPath();
+    ctx.arc(sx, sy, 4, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ============================================================
+// PATH DISPLAY
+// ============================================================
+function updatePathDisplay() {
+  var el = document.getElementById('pathOrder');
+  if (pathOrder.length === 0) { el.textContent = '—'; return; }
+  var s = pathOrder.map(function(p,i){ return (i+1)+':('+p.c+','+p.r+')'; }).join(' → ');
+  el.textContent = s;
+}
+
+function updateDividerList() {
+  var el = document.getElementById('dividerList');
+  el.innerHTML = '';
+  if (dividerLines.length === 0) {
+    el.innerHTML = '<span style="color:var(--dim);font-size:0.75em;">žádné čáry</span>';
+    return;
+  }
+  dividerLines.forEach(function(dl, i) {
+    var tag = document.createElement('span');
+    tag.className = 'divider-tag';
+    tag.textContent = (dl.type==='h' ? 'H' : 'V') + (dl.idx+1);
+    tag.title = 'Klik = odstraní';
+    tag.onclick = function() {
+      dividerLines.splice(i, 1);
+      updateDividerList();
+      drawTable();
+    };
+    el.appendChild(tag);
+  });
+}
+
+// ============================================================
+// CONTROLS
+// ============================================================
+function applyCustomSize() {
+  var c = parseInt(document.getElementById('colsInput').value) || 6;
+  var r = parseInt(document.getElementById('rowsInput').value) || 4;
+  cols = Math.max(1, Math.min(20, c));
+  rows = Math.max(1, Math.min(20, r));
+  CELL = cols > 10 || rows > 10 ? 32 : 44;
+  pathOrder = [];
+  dividerLines = [];
+  resizeCanvas();
+  drawTable();
+  updatePathDisplay();
+  updateDividerList();
+}
+
+function setGridSize(c, r) {
+  cols = c; rows = r;
+  CELL = cols > 10 || rows > 10 ? 32 : 44;
+  document.getElementById('colsInput').value = c;
+  document.getElementById('rowsInput').value = r;
+  pathOrder = [];
+  dividerLines = [];
+  resizeCanvas();
+  applyPreset(currentPreset < 6 ? currentPreset : 1);
+  drawTable();
+  updatePathDisplay();
+  updateDividerList();
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('modeEnc').classList.toggle('active', m==='enc');
+  document.getElementById('modeDec').classList.toggle('active', m==='dec');
+}
+
+function clearPath() {
+  pathOrder = [];
+  currentPreset = 6;
+  updatePresetUI();
+  drawTable();
+  updatePathDisplay();
+}
+
+function undoPath() {
+  pathOrder.pop();
+  drawTable();
+  updatePathDisplay();
+}
+
+// ============================================================
+// PRESETS UI
+// ============================================================
+function buildPresetUI() {
+  var row = document.getElementById('presetRow');
+  row.innerHTML = '';
+  PRESETS.forEach(function(p, i) {
+    var btn = document.createElement('button');
+    btn.className = 'preset-btn' + (i===currentPreset ? ' active' : '');
+    btn.textContent = p.icon + ' ' + p.name;
+    btn.onclick = function() { applyPreset(i); };
+    row.appendChild(btn);
+  });
+}
+
+function updatePresetUI() {
+  var btns = document.querySelectorAll('.preset-btn');
+  btns.forEach(function(b, i){ b.classList.toggle('active', i===currentPreset); });
+}
+
+function applyPreset(idx) {
+  currentPreset = idx;
+  updatePresetUI();
+  if (PRESETS[idx].fn) {
+    pathOrder = PRESETS[idx].fn();
+  } else {
+    pathOrder = [];
+  }
+  drawTable();
+  updatePathDisplay();
+}
+
+// ============================================================
+// SIZE PRESETS
+// ============================================================
+var SIZES = [
+  [3,3],[4,4],[5,5],[6,4],[8,5],[10,5],[5,3],[6,6]
+];
+
+function buildSizeUI() {
+  var row = document.getElementById('sizeRow');
+  row.innerHTML = '';
+  SIZES.forEach(function(s) {
+    var btn = document.createElement('button');
+    btn.className = 'size-btn';
+    btn.textContent = s[0]+'×'+s[1];
+    btn.onclick = function() {
+      document.querySelectorAll('.size-btn').forEach(function(b){ b.classList.remove('active'); });
+      btn.classList.add('active');
+      setGridSize(s[0], s[1]);
+    };
+    row.appendChild(btn);
+  });
+}
+
+// ============================================================
+// CIPHER LOGIC
+// ============================================================
+function cleanText(t) {
+  // Zachová velikost písmen, odstraní jen nežádoucí znaky (ne mezery a interpunkci)
+  return t.replace(/[^A-Za-záčďéěíňóřšťúůýžÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/g, '');
+}
+
+function updateTextCounter() {
+  var raw = document.getElementById('inputText').value;
+  var text = cleanText(raw);
+  var total = cols * rows;
+  var hint = document.getElementById('textCountHint');
+  var count = text.length;
+  if (count === 0) {
+    hint.textContent = '';
+  } else if (count > total) {
+    hint.innerHTML = count + '/' + total + ' &nbsp;⚠ text přesahuje tabulku o ' + (count - total) + ' znaků';
+    hint.style.color = '#ff6644';
+  } else {
+    hint.textContent = count + '/' + total;
+    hint.style.color = count === total ? '#00ffcc' : 'var(--dim)';
+  }
+}
+
+function processCipher() {
+  var raw = document.getElementById('inputText').value;
+  var text = cleanText(raw);
+  var fill = document.getElementById('fillChar').value || 'X';
+  var lineLen = 5;
+
+  updateTextCounter();
+
+  if (text.length === 0) { document.getElementById('output').textContent = '—'; return; }
+
+  var total = cols * rows;
+  // Ensure path covers all cells (fill missing)
+  var fullPath = getFullPath();
+
+  var result = '';
+
+  if (mode === 'enc') {
+    // Fill table row by row
+    var table = [];
+    for (var i=0; i<total; i++) {
+      table.push(text[i] || fill);
+    }
+    // Read in path order
+    for (var i=0; i<fullPath.length; i++) {
+      var cell = fullPath[i];
+      result += table[cell.r * cols + cell.c];
+    }
+  } else {
+    // Decrypt: text was written in path order, read row by row
+    // Place chars in path order into table
+    var table2 = new Array(total).fill('');
+    var charIdx = 0;
+    for (var i=0; i<fullPath.length && charIdx<text.length; i++) {
+      var cell = fullPath[i];
+      table2[cell.r * cols + cell.c] = text[charIdx++];
+    }
+    // Read row by row
+    result = table2.join('');
+  }
+
+  // Format output
+  var grouped = '';
+  for (var i=0; i<result.length; i++) {
+    if (i>0 && i%lineLen===0) grouped += ' ';
+    grouped += result[i];
+  }
+  document.getElementById('output').textContent = grouped;
+
+  drawViz(text, fill, fullPath, showGridInPng);
+}
+
+function getFullPath() {
+  // Start with pathOrder, then append unvisited cells in row order
+  var visited = {};
+  var path = [];
+  for (var i=0; i<pathOrder.length; i++) {
+    var k = pathOrder[i].c+','+pathOrder[i].r;
+    if (!visited[k]) {
+      visited[k] = true;
+      path.push(pathOrder[i]);
+    }
+  }
+  for (var r=0; r<rows; r++) {
+    for (var c=0; c<cols; c++) {
+      var k = c+','+r;
+      if (!visited[k]) {
+        visited[k] = true;
+        path.push({c:c, r:r});
+      }
+    }
+  }
+  return path;
+}
+
+// ============================================================
+// VISUALIZATION CANVAS
+// ============================================================
+function drawViz(text, fill, fullPath, showGrid) {
+  var vc = document.getElementById('vizCanvas');
+  var vctx = vc.getContext('2d');
+  var vDPR = DPR;
+  var vCELL = Math.min(CELL, Math.floor(300 / cols));
+  var vPAD = 8;
+  var w = cols * vCELL + vPAD*2;
+  var h = rows * vCELL + vPAD*2;
+
+  vc.style.width = w + 'px';
+  vc.style.height = h + 'px';
+  vc.width = w * vDPR;
+  vc.height = h * vDPR;
+  vctx.scale(vDPR, vDPR);
+
+  // Průhledné pozadí
+  vctx.clearRect(0, 0, w, h);
+
+  // Fill table for display
+  var table = [];
+  if (mode === 'enc') {
+    for (var i=0; i<rows*cols; i++) table.push(text[i] || fill);
+  } else {
+    var t2 = new Array(rows*cols).fill('?');
+    var ci = 0;
+    for (var i=0; i<fullPath.length && ci<text.length; i++) {
+      t2[fullPath[i].r * cols + fullPath[i].c] = text[ci++];
+    }
+    table = t2;
+  }
+
+  for (var r=0; r<rows; r++) {
+    for (var c=0; c<cols; c++) {
+      var x = vPAD + c*vCELL, y = vPAD + r*vCELL;
+
+      // Mřížka — jednoduché černé čáry
+      if (showGrid !== false) {
+        vctx.strokeStyle = '#000000';
+        vctx.lineWidth = 1;
+        vctx.strokeRect(x + 0.5, y + 0.5, vCELL - 1, vCELL - 1);
+      }
+
+      // Černý text; výplňový znak světle šedý
+      vctx.fillStyle = table[r*cols+c] === fill ? '#aaaaaa' : '#000000';
+      vctx.font = 'bold ' + Math.round(vCELL * 0.45) + 'px "Share Tech Mono"';
+      vctx.textAlign = 'center';
+      vctx.textBaseline = 'middle';
+      vctx.fillText(table[r*cols+c], x + vCELL/2, y + vCELL/2);
+    }
+  }
+
+  // Oddělovací čáry — silnější černé
+  for (var d=0; d<dividerLines.length; d++) {
+    var dl = dividerLines[d];
+    vctx.strokeStyle = '#000000';
+    vctx.lineWidth = 3;
+    if (dl.type==='h') {
+      var ly = vPAD + (dl.idx+1)*vCELL;
+      vctx.beginPath(); vctx.moveTo(vPAD, ly); vctx.lineTo(vPAD+cols*vCELL, ly); vctx.stroke();
+    } else {
+      var lx = vPAD + (dl.idx+1)*vCELL;
+      vctx.beginPath(); vctx.moveTo(lx, vPAD); vctx.lineTo(lx, vPAD+rows*vCELL); vctx.stroke();
+    }
+  }
+}
+
+var showGridInPng = true;
+
+function toggleGridInPng() {
+  showGridInPng = !showGridInPng;
+  var btn = document.getElementById('gridToggleBtn');
+  if (showGridInPng) {
+    btn.textContent = 'MŘÍŽKA: ZAP';
+    btn.style.borderColor = '#ffaa00';
+    btn.style.color = '#ffaa00';
+  } else {
+    btn.textContent = 'MŘÍŽKA: VYP';
+    btn.style.borderColor = 'var(--dim)';
+    btn.style.color = 'var(--dim)';
+  }
+  // Redraw viz with current state if output exists
+  var out = document.getElementById('output').textContent;
+  if (out && out !== '—') processCipher();
+}
+
+function downloadViz() {
+  var vc = document.getElementById('vizCanvas');
+  var tmp = document.createElement('canvas');
+  tmp.width = vc.width; tmp.height = vc.height;
+  var tc = tmp.getContext('2d');
+  // Bílé pozadí pro tisk
+  tc.fillStyle = '#ffffff';
+  tc.fillRect(0, 0, tmp.width, tmp.height);
+  tc.drawImage(vc, 0, 0);
+  var link = document.createElement('a');
+  link.download = 'transpozice.png';
+  link.href = tmp.toDataURL('image/png');
+  link.click();
+}
+
+function copyOutput() {
+  var text = document.getElementById('output').textContent;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text);
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta);
+    ta.select(); document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('output').textContent = '—';
+}
+
+// ============================================================
+// LINE LENGTH SLIDER
+// ============================================================
+
+
+// ============================================================
+// INIT
+// ============================================================
+buildSizeUI();
+buildPresetUI();
+resizeCanvas();
+applyPreset(0); // Had ↕ default
+
+document.getElementById('inputText').addEventListener('input', updateTextCounter);
+</script>
+</body>
+</html>
